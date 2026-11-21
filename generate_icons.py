@@ -7,7 +7,7 @@ with open(manifest_path, "r", encoding="utf-8") as f:
     manifest_xml = f.read()
 
 mipmap_refs = sorted(set(re.findall(r"@mipmap/([a-zA-Z0-9_]+)", manifest_xml)))
-res_light_dir = "app/src/main/res/mipmap-xxhdpi"
+res_night_dir = "app/src/main/res/mipmap-night-xxhdpi"
 res_night_dir = "app/src/main/res/mipmap-xxhdpi-night"
 os.makedirs(res_light_dir, exist_ok=True)
 os.makedirs(res_night_dir, exist_ok=True)
