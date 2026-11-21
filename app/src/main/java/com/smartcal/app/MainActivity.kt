@@ -42,7 +42,7 @@ class MainActivity : AppCompatActivity() {
             databaseEnabled = true
             allowFileAccess = true
             allowContentAccess = true
-            geolocationEnabled = true
+            setGeolocationEnabled(true)
             cacheMode = WebSettings.LOAD_DEFAULT
             mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
             mediaPlaybackRequiresUserGesture = false
