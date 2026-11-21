@@ -102,11 +102,11 @@ body{background:var(--bg);background-attachment:fixed;color:var(--txt);padding:c
 }
 
 /* Top Bar (Responsive across FA, KU, EN without overflow) */
-.bar{display:flex;justify-content:space-between;align-items:center;gap:6px;width:100%;max-width:100%;min-width:0}
-.pill{background:var(--pri-bg);color:var(--pri);border:1px solid rgba(27,110,243,0.18);height:34px;padding:0 10px;border-radius:99px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;min-width:0;flex:0 0 auto;max-width:46%}
-.pill span{white-space:nowrap;unicode-bidi:isolate;line-height:1.45;padding-inline:1px}
-.actions{display:flex;align-items:center;gap:5px;flex-shrink:0;min-width:0}
-.ibtn{background:var(--card);border:1px solid var(--brd);color:var(--txt);height:34px;padding:0 9px;border-radius:12px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,0.025)}
+.bar{display:flex;justify-content:space-between;align-items:center;gap:4px;width:100%;max-width:100%;min-width:0;overflow:hidden}
+.pill{background:var(--pri-bg);color:var(--pri);border:1px solid rgba(27,110,243,0.18);height:32px;padding:0 8px;border-radius:99px;font-size:10.5px;font-weight:700;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;min-width:0;flex:1 1 auto;overflow:hidden}
+.pill span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;unicode-bidi:isolate;line-height:1.45;padding-inline:1px}
+.actions{display:flex;align-items:center;gap:4px;flex-shrink:0;min-width:0}
+.ibtn{background:var(--card);border:1px solid var(--brd);color:var(--txt);height:32px;padding:0 7px;border-radius:12px;font-size:10.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:3px;white-space:nowrap;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,0.025)}
 .ibtn svg,.pill svg,.nbtn svg{width:15px;height:15px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .nbtn svg{width:20px;height:20px;margin-bottom:1px}
 .ibtn:active,.pill:active{transform:scale(.95)}
@@ -697,7 +697,7 @@ setTimeout(function(){
       </button>
       <button class="ibtn" id="openConv" title="مبدل تاریخ و محاسبه فاصله دو تاریخ">
         <svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
-        <span>مبدل و فاصله</span>
+        <span>مبدل</span>
       </button>
       <button class="ibtn" id="installPwaBtn" onclick="triggerPwaInstall()" style="display:none;background:var(--pri);color:var(--onpri);border:none" title="نصب وب‌اپلیکیشن روی گوشی">
         <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -1276,11 +1276,14 @@ setTimeout(function(){
 <script>
 // Self-healing cache & Service Worker updater for v19
 (function(){
-  const VER = "v62.0";
+  const VER = "v62.1";
   if (localStorage.getItem("smartcal_sw_ver") !== VER) {
     localStorage.setItem("smartcal_sw_ver", VER);
     if ("caches" in window) {
       caches.keys().then(keys => keys.forEach(k => { if (!k.includes(VER)) caches.delete(k); })).catch(()=>{});
+    }
+    if (window.AndroidBridge && window.AndroidBridge.cancelStatusDateNotification) {
+      try { window.AndroidBridge.cancelStatusDateNotification(); } catch (e) {}
     }
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.update())).catch(()=>{});
@@ -2484,8 +2487,14 @@ function updateStatusDateBtnUI(primaryDayStr = "") {
     }
   }
 
+  const hasNativeAndroidNotif = !!(window.AndroidBridge && window.AndroidBridge.showStatusDateNotification);
   if (permStateEl) {
-    if (!("Notification" in window)) {
+    if (hasNativeAndroidNotif) {
+      permStateEl.textContent = statusNotifEnabled
+        ? "✅ فعال (اندروید بومی) • عدد روز در نوار وضعیت بالای گوشی نمایش داده می‌شود"
+        : "غیرفعال شده توسط شما";
+      permStateEl.style.color = statusNotifEnabled ? "var(--grn)" : "var(--sec)";
+    } else if (!("Notification" in window)) {
       permStateEl.textContent = isIosDevice() ? "در iOS نمایش اعلان در نوار بالا نیازمند iOS 16.4+ و نصب از Safari است" : "مرورگر فعلی از اعلان سیستم پشتیبانی نمی‌کند";
       permStateEl.style.color = "var(--hol)";
     } else if (perm === "denied") {
@@ -2507,6 +2516,11 @@ async function activateOrRefreshStatusNotif() {
   statusNotifEnabled = true;
   localStorage.setItem("cal_status_notif_v1", "true");
   lastNotifSignature = ""; // Force re-post even if date hasn't changed
+  if (window.AndroidBridge && window.AndroidBridge.showStatusDateNotification) {
+    await updatePersistentStatusDate(true);
+    updateStatusDateBtnUI();
+    return;
+  }
   if (!("Notification" in window)) {
     if (isIosDevice()) {
       alert("در سیستم‌عامل iOS، نمایش اعلان وب فقط در نسخه‌های جدیدتر (iOS 16.4 به بالا) و پس از افزودن برنامه به صفحه اصلی (Add to Home Screen) در سافاری امکان‌پذیر است؛ در این دستگاه از نمایش تاریخ در خود برنامه و ویجت/آیکون استفاده می‌شود.");
@@ -2577,6 +2591,16 @@ async function updatePersistentStatusDate(forcePost = false) {
   }
 
   if (!statusNotifEnabled) return;
+  if (window.AndroidBridge && window.AndroidBridge.showStatusDateNotification) {
+    const gregMonthWithNumA = `${GM_EN[g.gm - 1]} (${toLatDigits(g.gm)})`;
+    const jalaliFullA = `${weekDayName} ${fa(tod.jd)} ${JM[tod.jm - 1]} ${fa(tod.jy)}`;
+    const kurdishFullA = `${weekDayName} ${fa(tod.jd)}ی ${KM[tod.jm - 1]} ${fa(tod.jy + 1321)}`;
+    const gregFullA = `${toLatDigits(g.gd)} ${gregMonthWithNumA} ${toLatDigits(g.gy)}`;
+    const nTitleA = cType === "kurdish" ? kurdishFullA : (cType === "gregorian" ? `${gregFullA} (${weekDayName})` : jalaliFullA);
+    const nBodyA = cType === "gregorian" ? `${fa(tod.jd)} ${JM[tod.jm - 1]} ${fa(tod.jy)}` : gregFullA;
+    try { window.AndroidBridge.showStatusDateNotification(primaryDayStr, nTitleA, nBodyA); } catch (e) {}
+    return;
+  }
   if (!("Notification" in window)) return;
 
   if (Notification.permission === "default" && forcePost) {
@@ -2769,7 +2793,7 @@ function applyLanguageUI() {
 
   // Top Bar & Calendar Controls
   setTxt("#topStyleBtn span", "طراحی", "دیزاین", "Style");
-    setTxt("#openConv span", "مبدل و فاصله", "گۆڕەر و ماوە", "Convert & Diff");
+    setTxt("#openConv span", "مبدل", "گۆڕەر", "Convert");
   setTxt("#installPwaBtn span", "نصب", "داگرتن", "Install");
   setTxt("#openSet span", "تنظیمات", "ڕێکخستن", "Settings");
   setTxt("#modeMonth", "ماهانه", "مانگانە", "Monthly");
@@ -3235,7 +3259,7 @@ window.addEventListener("pageshow", () => {
   fetchWeather(true);
 });
 
-// Live Gold, Coin & Foreign Currency in Toman (v62.0 Parallel Multi-Source Live Fetcher)
+// Live Gold, Coin & Foreign Currency in Toman (v62.1 Parallel Multi-Source Live Fetcher)
 const LATEST_MARKET_BASELINE = {
   dateLabel: "آذر ۱۴۰۵",
   usd: 268500, eur: 295400, gbp: 351200, aed: 73150, tryP: 5365, cad: 192100,
