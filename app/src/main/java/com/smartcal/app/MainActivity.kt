@@ -12,24 +12,23 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Rect
 import android.graphics.Typeface
 import android.os.Build
 import android.os.Bundle
-import android.webkit.GeolocationPermissions
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
-import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.IconCompat
 import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import androidx.webkit.WebViewAssetLoader
 import java.net.HttpURLConnection
 import java.net.URL
@@ -37,18 +36,25 @@ import java.net.URL
 class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
-    private val CHANNEL_ID = "smartcal_status_date_channel"
-    private val NOTIF_ID = 6201
+    private val CHANNEL_ID = "smartcal_status_channel"
+    private val NOTIF_ID = 1001
+    private val REQ_POST_NOTIF = 2001
+
+    private var pendingDayText: String = ""
+    private var pendingTitle: String = ""
+    private var pendingBody: String = ""
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        IconUpdater.updateTodayIcon(this)
+        try {
+            IconUpdater.update(this)
+        } catch (_: Exception) {}
+
         createNotificationChannel()
         requestNotificationPermissionIfNeeded()
 
-        WindowCompat.setDecorFitsSystemWindows(window, true)
         webView = WebView(this)
         setContentView(webView)
 
@@ -61,15 +67,11 @@ class MainActivity : AppCompatActivity() {
             domStorageEnabled = true
             databaseEnabled = true
             allowFileAccess = true
-            allowContentAccess = true
             setGeolocationEnabled(true)
-            cacheMode = WebSettings.LOAD_DEFAULT
-            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
             mediaPlaybackRequiresUserGesture = false
         }
 
-        webView.addJavascriptInterface(AndroidBridge(), "AndroidBridge")
-
+        webView.webChromeClient = WebChromeClient()
         webView.webViewClient = object : WebViewClient() {
             override fun shouldInterceptRequest(
                 view: WebView,
@@ -79,151 +81,24 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        webView.webChromeClient = object : WebChromeClient() {
-            override fun onGeolocationPermissionsShowPrompt(
-                origin: String?,
-                callback: GeolocationPermissions.Callback?
-            ) {
-                callback?.invoke(origin, true, false)
-            }
-        }
-
+        webView.addJavascriptInterface(AndroidBridge(), "AndroidBridge")
         webView.loadUrl("https://appassets.androidplatform.net/assets/www/index.html")
+
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (webView.canGoBack()) {
+                    webView.goBack()
+                } else {
+                    finish()
+                }
+            }
+        })
     }
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "تاریخ روز در نوار وضعیت",
+                "تقویم روزانه در نوار وضعیت",
                 NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "نمایش دائمی تاریخ روز در نوار وضعیت بالای گوشی"
-                setShowBadge(false)
-            }
-            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            nm.createNotificationChannel(channel)
-        }
-    }
-
-    private fun requestNotificationPermissionIfNeeded() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
-                != PackageManager.PERMISSION_GRANTED
-            ) {
-                ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-                    2001
-                )
-            }
-        }
-    }
-
-    private fun createDayNumberBitmap(dayText: String): Bitmap {
-        val size = 96
-        val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bmp)
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.WHITE
-            textAlign = Paint.Align.CENTER
-            typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
-            textSize = if (dayText.length >= 2) 64f else 74f
-        }
-        val fm = paint.fontMetrics
-        val y = size / 2f - (fm.ascent + fm.descent) / 2f
-        canvas.drawText(dayText, size / 2f, y, paint)
-        return bmp
-    }
-
-    override fun onResume() {
-        super.onResume()
-        IconUpdater.updateTodayIcon(this)
-    }
-
-    @Deprecated("Deprecated in Java")
-    override fun onBackPressed() {
-        if (this::webView.isInitialized && webView.canGoBack()) {
-            webView.goBack()
-        } else {
-            super.onBackPressed()
-        }
-    }
-
-    inner class AndroidBridge {
-        @JavascriptInterface
-        fun syncStatusBarColor(hexColor: String, isLightIcons: Boolean) {
-            runOnUiThread {
-                try {
-                    window.statusBarColor = Color.parseColor(hexColor)
-                    window.navigationBarColor = Color.parseColor(hexColor)
-                    val ctrl = WindowInsetsControllerCompat(window, window.decorView)
-                    ctrl.isAppearanceLightStatusBars = isLightIcons
-                    ctrl.isAppearanceLightNavigationBars = isLightIcons
-                } catch (_: Exception) {}
-            }
-        }
-
-        @JavascriptInterface
-        fun showStatusDateNotification(dayNum: String, title: String, body: String): Boolean {
-            return try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                    ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.POST_NOTIFICATIONS)
-                    != PackageManager.PERMISSION_GRANTED
-                ) {
-                    runOnUiThread { requestNotificationPermissionIfNeeded() }
-                    return false
-                }
-                val launchIntent = Intent(this@MainActivity, MainActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                }
-                val pi = PendingIntent.getActivity(
-                    this@MainActivity,
-                    0,
-                    launchIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                )
-                val dayIcon = IconCompat.createWithBitmap(createDayNumberBitmap(dayNum))
-                val notif = NotificationCompat.Builder(this@MainActivity, CHANNEL_ID)
-                    .setSmallIcon(dayIcon)
-                    .setContentTitle(title)
-                    .setContentText(body)
-                    .setOngoing(true)
-                    .setSilent(true)
-                    .setPriority(NotificationCompat.PRIORITY_LOW)
-                    .setContentIntent(pi)
-                    .build()
-                val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                nm.notify(NOTIF_ID, notif)
-                true
-            } catch (_: Exception) {
-                false
-            }
-        }
-
-        @JavascriptInterface
-        fun cancelStatusDateNotification() {
-            try {
-                val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                nm.cancel(NOTIF_ID)
-            } catch (_: Exception) {}
-        }
-
-        @JavascriptInterface
-        fun fetchUrlNative(urlString: String): String {
-            return try {
-                val conn = (URL(urlString).openConnection() as HttpURLConnection).apply {
-                    connectTimeout = 5000
-                    readTimeout = 5000
-                    requestMethod = "GET"
-                    setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14) SmartCal/62.1")
-                }
-                if (conn.responseCode in 200..299) {
-                    conn.inputStream.bufferedReader().use { it.readText() }
-                } else ""
-            } catch (_: Exception) {
-                ""
-            }
-        }
-    }
-}
+            ).
