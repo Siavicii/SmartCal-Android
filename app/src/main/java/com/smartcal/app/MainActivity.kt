@@ -29,6 +29,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
@@ -37,6 +38,10 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.webkit.WebViewAssetLoader
 import org.json.JSONObject
+import java.util.TimeZone
+import org.json.JSONArray
+import android.provider.CalendarContract
+import android.content.ContentValues
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -53,16 +58,22 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
         super.onCreate(savedInstanceState)
 
         IconUpdater.updateTodayIcon(this)
         createNotificationChannel()
         requestEssentialPermissionsIfNeeded()
-        checkForGitHubUpdate()
-
         WindowCompat.setDecorFitsSystemWindows(window, true)
-        webView = WebView(this)
+        val isNightNow = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+        val bootBgColor = if (isNightNow) Color.parseColor("#0F172A") else Color.parseColor("#F4F6FA")
+        window.decorView.setBackgroundColor(bootBgColor)
+        webView = WebView(this).apply {
+            setBackgroundColor(bootBgColor)
+            setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
+        }
         setContentView(webView)
+        webView.postDelayed({ checkForGitHubUpdate() }, 2200L)
 
         val assetLoader = WebViewAssetLoader.Builder()
             .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(this))
@@ -175,6 +186,12 @@ class MainActivity : AppCompatActivity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 1004) {
+            val granted = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
+            runOnUiThread {
+                webView.evaluateJavascript("window.onNativeCalendarPermissionResult && window.onNativeCalendarPermissionResult($granted);", null)
+            }
+        }
         val req = pendingWebPermRequest
         pendingWebPermRequest = null
         if (req != null) {
@@ -187,7 +204,20 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun checkForGitHubUpdate() {
+    private fun isNewerVersion(latest: String, current: String): Boolean {
+        val lParts = latest.split(".").map { it.filter(Char::isDigit).toIntOrNull() ?: 0 }
+        val cParts = current.split(".").map { it.filter(Char::isDigit).toIntOrNull() ?: 0 }
+        val maxLen = maxOf(lParts.size, cParts.size)
+        for (i in 0 until maxLen) {
+            val l = lParts.getOrElse(i) { 0 }
+            val c = cParts.getOrElse(i) { 0 }
+            if (l > c) return true
+            if (l < c) return false
+        }
+        return false
+    }
+
+    private fun checkForGitHubUpdate(manual: Boolean = false) {
         Thread {
             try {
                 val url = URL("https://api.github.com/repos/$GITHUB_REPO/releases/latest")
@@ -198,7 +228,12 @@ class MainActivity : AppCompatActivity() {
                     setRequestProperty("Accept", "application/vnd.github+json")
                     setRequestProperty("User-Agent", "SmartCal-Android")
                 }
-                if (conn.responseCode != 200) return@Thread
+                if (conn.responseCode != 200) {
+                    if (manual) runOnUiThread {
+                        android.widget.Toast.makeText(this@MainActivity, "خطا در ارتباط با سرور گیت‌هاب", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                    return@Thread
+                }
 
                 val response = conn.inputStream.bufferedReader().use { it.readText() }
                 val json = JSONObject(response)
@@ -217,7 +252,7 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 val currentVer = packageManager.getPackageInfo(packageName, 0).versionName ?: "0"
-                if (latestTag.isNotEmpty() && latestTag != currentVer && apkUrl.isNotEmpty()) {
+                if (latestTag.isNotEmpty() && isNewerVersion(latestTag, currentVer) && apkUrl.isNotEmpty()) {
                     runOnUiThread {
                         if (!isFinishing && !isDestroyed) {
                             AlertDialog.Builder(this)
@@ -230,6 +265,11 @@ class MainActivity : AppCompatActivity() {
                                 .setNegativeButton("بعداً", null)
                                 .show()
                         }
+                    }
+                }
+             else if (manual) {
+                    runOnUiThread {
+                        android.widget.Toast.makeText(this@MainActivity, "شما از آخرین نسخه ($currentVer) استفاده می‌کنید ✅", android.widget.Toast.LENGTH_SHORT).show()
                     }
                 }
             } catch (_: Exception) {}
@@ -280,6 +320,19 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         IconUpdater.updateTodayIcon(this)
+    }
+
+    override fun onDestroy() {
+        if (this::webView.isInitialized) {
+            try {
+                webView.stopLoading()
+                webView.removeJavascriptInterface("AndroidBridge")
+                (webView.parent as? android.view.ViewGroup)?.removeView(webView)
+                webView.clearHistory()
+                webView.destroy()
+            } catch (_: Exception) {}
+        }
+        super.onDestroy()
     }
 
     @Deprecated("Deprecated in Java")
@@ -397,6 +450,7 @@ class MainActivity : AppCompatActivity() {
                     .build()
                 val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                 nm.notify(NOTIF_ID, notif)
+                IconUpdater.setStatusNotifEnabled(this@MainActivity, true)
                 true
             } catch (_: Exception) {
                 false
@@ -408,6 +462,114 @@ class MainActivity : AppCompatActivity() {
             try {
                 val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                 nm.cancel(NOTIF_ID)
+                IconUpdater.setStatusNotifEnabled(this@MainActivity, false)
+            } catch (_: Exception) {}
+        }
+
+
+        @JavascriptInterface
+        fun hasCalendarPermission(): Boolean {
+            val r = ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED
+            val w = ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.WRITE_CALENDAR) == PackageManager.PERMISSION_GRANTED
+            return r && w
+        }
+
+        @JavascriptInterface
+        fun requestCalendarPermission() {
+            runOnUiThread {
+                ActivityCompat.requestPermissions(
+                    this@MainActivity,
+                    arrayOf(Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR),
+                    1004
+                )
+            }
+        }
+
+        @JavascriptInterface
+        fun getCalendarEvents(startMs: Long, endMs: Long): String {
+            if (!hasCalendarPermission()) return "[]"
+            val arr = JSONArray()
+            try {
+                val builder = CalendarContract.Instances.CONTENT_URI.buildUpon()
+                android.content.ContentUris.appendId(builder, startMs)
+                android.content.ContentUris.appendId(builder, endMs)
+                val proj = arrayOf(
+                    CalendarContract.Instances.TITLE,
+                    CalendarContract.Instances.BEGIN,
+                    CalendarContract.Instances.END,
+                    CalendarContract.Instances.ALL_DAY,
+                    CalendarContract.Instances.CALENDAR_DISPLAY_NAME
+                )
+                contentResolver.query(builder.build(), proj, null, null, "${CalendarContract.Instances.BEGIN} ASC")?.use { cur ->
+                    var count = 0
+                    while (cur.moveToNext() && count < 300) {
+                        val obj = JSONObject()
+                        obj.put("title", cur.getString(0) ?: "")
+                        obj.put("startMs", cur.getLong(1))
+                        obj.put("endMs", cur.getLong(2))
+                        obj.put("allDay", cur.getInt(3) == 1)
+                        obj.put("calendarName", cur.getString(4) ?: "Google")
+                        arr.put(obj)
+                        count++
+                    }
+                }
+            } catch (_: Exception) {}
+            return arr.toString()
+        }
+
+        @JavascriptInterface
+        fun addCalendarEvent(title: String, desc: String, startMs: Long, endMs: Long, allDay: Boolean): Boolean {
+            if (!hasCalendarPermission()) return false
+            return try {
+                var calId = -1L
+                val proj = arrayOf(CalendarContract.Calendars._ID, CalendarContract.Calendars.IS_PRIMARY)
+                val sel = "${CalendarContract.Calendars.VISIBLE} = 1 AND ${CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL} >= ${CalendarContract.Calendars.CAL_ACCESS_CONTRIBUTOR}"
+                contentResolver.query(CalendarContract.Calendars.CONTENT_URI, proj, sel, null, "${CalendarContract.Calendars.IS_PRIMARY} DESC")?.use { c ->
+                    if (c.moveToFirst()) calId = c.getLong(0)
+                }
+                if (calId == -1L) return false
+                val values = ContentValues().apply {
+                    put(CalendarContract.Events.CALENDAR_ID, calId)
+                    put(CalendarContract.Events.TITLE, title)
+                    put(CalendarContract.Events.DESCRIPTION, desc)
+                    put(CalendarContract.Events.DTSTART, startMs)
+                    put(CalendarContract.Events.DTEND, if (endMs > startMs) endMs else startMs + 3600000L)
+                    put(CalendarContract.Events.ALL_DAY, if (allDay) 1 else 0)
+                    put(CalendarContract.Events.EVENT_TIMEZONE, TimeZone.getDefault().id)
+                }
+                contentResolver.insert(CalendarContract.Events.CONTENT_URI, values) != null
+            } catch (_: Exception) {
+                false
+            }
+        }
+
+
+        @JavascriptInterface
+        fun checkUpdateManual() {
+            runOnUiThread {
+                android.widget.Toast.makeText(this@MainActivity, "در حال بررسی نسخه جدید...", android.widget.Toast.LENGTH_SHORT).show()
+            }
+            checkForGitHubUpdate(true)
+        }
+
+        @JavascriptInterface
+        fun scheduleNativeAlarm(triggerMs: Long, title: String, body: String, reqCode: Int) {
+            try {
+                val am = getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+                val intent = Intent(this@MainActivity, AlarmReceiver::class.java).apply {
+                    putExtra("title", title)
+                    putExtra("body", body)
+                    putExtra("reqCode", reqCode)
+                }
+                val pi = PendingIntent.getBroadcast(
+                    this@MainActivity, reqCode, intent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    am.setAndAllowWhileIdle(android.app.AlarmManager.RTC_WAKEUP, triggerMs, pi)
+                } else {
+                    am.set(android.app.AlarmManager.RTC_WAKEUP, triggerMs, pi)
+                }
             } catch (_: Exception) {}
         }
 
@@ -415,8 +577,8 @@ class MainActivity : AppCompatActivity() {
         fun fetchUrlNative(urlString: String): String {
             return try {
                 val conn = (URL(urlString).openConnection() as HttpURLConnection).apply {
-                    connectTimeout = 3000
-                    readTimeout = 3000
+                    connectTimeout = 8000
+                    readTimeout = 8000
                     requestMethod = "GET"
                     setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14) SmartCal/63.0")
                 }

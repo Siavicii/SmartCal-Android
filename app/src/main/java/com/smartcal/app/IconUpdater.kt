@@ -1,13 +1,23 @@
 package com.smartcal.app
 
+import android.Manifest
 import android.app.AlarmManager
+import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.content.res.Configuration
-import androidx.appcompat.app.AppCompatDelegate
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Rect
+import android.graphics.Typeface
+import android.os.Build
+import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.IconCompat
 import java.util.Calendar
 
 object IconUpdater {
@@ -16,14 +26,34 @@ object IconUpdater {
     private const val KEY_LAST_ALIAS = "last_enabled_alias"
     private const val KEY_CAL_TYPE = "cal_type"
     private const val KEY_LANG = "app_lang"
+    private const val KEY_STATUS_NOTIF_ENABLED = "status_notif_enabled"
     private const val DEFAULT_ALIAS = ".M8D30"
+    private const val STATUS_CHANNEL_ID = "smartcal_status_date_channel"
+    private const val STATUS_NOTIF_ID = 6201
 
-    fun syncSystemDarkMode(context: Context) {
-        val uiNightMode = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
-        val isNight = uiNightMode == Configuration.UI_MODE_NIGHT_YES
-        AppCompatDelegate.setDefaultNightMode(
-            if (isNight) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
-        )
+    private val FA_MONTHS = arrayOf(
+        "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
+        "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"
+    )
+    private val KU_MONTHS = arrayOf(
+        "خاکەلێوە", "گوڵان", "جۆزەردان", "پووشپەڕ", "گەلاوێژ", "خەرمانان",
+        "ڕەزبەر", "گەڵاڕێزان", "سەرماوەز", "بەفرانبار", "ڕێبەندان", "ڕەشەمە"
+    )
+    private val EN_MONTHS = arrayOf(
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    )
+
+    private fun toPersianDigits(n: Int): String {
+        val map = charArrayOf('۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹')
+        return n.toString().map { if (it in '0'..'9') map[it - '0'] else it }.joinToString("")
+    }
+
+    fun setStatusNotifEnabled(context: Context, enabled: Boolean) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(KEY_STATUS_NOTIF_ENABLED, enabled)
+            .apply()
     }
 
     fun updatePreferencesAndIcon(context: Context, calType: String?, lang: String?) {
@@ -33,11 +63,10 @@ object IconUpdater {
         if (!lang.isNullOrBlank()) editor.putString(KEY_LANG, lang)
         editor.apply()
         updateTodayIcon(context)
+        refreshStatusDateNotificationIfEnabled(context)
     }
 
     fun updateTodayIcon(context: Context) {
-        syncSystemDarkMode(context)
-
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val calType = prefs.getString(KEY_CAL_TYPE, "jalali") ?: "jalali"
         val lang = prefs.getString(KEY_LANG, "fa") ?: "fa"
@@ -102,6 +131,100 @@ object IconUpdater {
         scheduleNextMidnight(context)
     }
 
+    fun refreshStatusDateNotificationIfEnabled(context: Context) {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        if (!prefs.getBoolean(KEY_STATUS_NOTIF_ENABLED, false)) return
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+
+        try {
+            val calType = prefs.getString(KEY_CAL_TYPE, "jalali") ?: "jalali"
+            val lang = prefs.getString(KEY_LANG, "fa") ?: "fa"
+
+            val cal = Calendar.getInstance()
+            val gy = cal.get(Calendar.YEAR)
+            val gm = cal.get(Calendar.MONTH) + 1
+            val gd = cal.get(Calendar.DAY_OF_MONTH)
+            val jalali = JalaliHelper.gregorianToJalali(gy, gm, gd)
+
+            val dayNum: String
+            val title: String
+            val body: String
+
+            when {
+                calType == "gregorian" || lang == "en" -> {
+                    dayNum = gd.toString()
+                    title = "$gd ${EN_MONTHS[(gm - 1).coerceIn(0, 11)]} $gy"
+                    body = "Smart Cal"
+                }
+                calType == "kurdish" || lang == "ku" -> {
+                    val kuYear = jalali.year + 1321
+                    dayNum = toPersianDigits(jalali.day)
+                    title = "${toPersianDigits(jalali.day)}ی ${KU_MONTHS[(jalali.month - 1).coerceIn(0, 11)]} ${toPersianDigits(kuYear)}"
+                    body = "$gd ${EN_MONTHS[(gm - 1).coerceIn(0, 11)]} $gy"
+                }
+                else -> {
+                    dayNum = toPersianDigits(jalali.day)
+                    title = "${toPersianDigits(jalali.day)} ${FA_MONTHS[(jalali.month - 1).coerceIn(0, 11)]} ${toPersianDigits(jalali.year)}"
+                    body = "$gd ${EN_MONTHS[(gm - 1).coerceIn(0, 11)]} $gy"
+                }
+            }
+
+            val launchIntent = Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            val pi = PendingIntent.getActivity(
+                context, 0, launchIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+            val dayIcon = IconCompat.createWithBitmap(createDayNumberBitmap(dayNum))
+            val notif = NotificationCompat.Builder(context, STATUS_CHANNEL_ID)
+                .setSmallIcon(dayIcon)
+                .setContentTitle(title)
+                .setContentText(body)
+                .setOngoing(true)
+                .setSilent(true)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setContentIntent(pi)
+                .build()
+
+            val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            nm.notify(STATUS_NOTIF_ID, notif)
+        } catch (_: Exception) {}
+    }
+
+    private fun createDayNumberBitmap(dayText: String): Bitmap {
+        val size = 96
+        val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bmp)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
+            isFakeBoldText = false
+            style = Paint.Style.FILL
+            textSize = 100f
+        }
+        val bounds = Rect()
+        paint.getTextBounds(dayText, 0, dayText.length, bounds)
+        val target = size * 0.88f
+        val scale = minOf(
+            target / bounds.width().coerceAtLeast(1),
+            target / bounds.height().coerceAtLeast(1)
+        )
+        paint.textSize = paint.textSize * scale
+        paint.getTextBounds(dayText, 0, dayText.length, bounds)
+        val x = size / 2f - bounds.exactCenterX()
+        val y = size / 2f - bounds.exactCenterY()
+        canvas.drawText(dayText, x, y, paint)
+        return bmp
+    }
+
     fun scheduleNextMidnight(context: Context) {
         val am = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
         val intent = Intent(context, DateChangeReceiver::class.java).apply {
@@ -120,11 +243,10 @@ object IconUpdater {
             set(Calendar.SECOND, 5)
             set(Calendar.MILLISECOND, 0)
         }
-        am.setInexactRepeating(
-            AlarmManager.RTC,
-            nextMidnight.timeInMillis,
-            AlarmManager.INTERVAL_DAY,
-            pi
-        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, nextMidnight.timeInMillis, pi)
+        } else {
+            am.set(AlarmManager.RTC_WAKEUP, nextMidnight.timeInMillis, pi)
+        }
     }
 }
