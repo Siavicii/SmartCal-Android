@@ -14,6 +14,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.Typeface
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.webkit.GeolocationPermissions
@@ -24,6 +25,7 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
@@ -32,12 +34,14 @@ import androidx.core.graphics.drawable.IconCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.webkit.WebViewAssetLoader
+import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
+    private val GITHUB_REPO = "Siavicii/SmartCal-Android"
     private val CHANNEL_ID = "smartcal_status_date_channel"
     private val NOTIF_ID = 6201
 
@@ -48,6 +52,7 @@ class MainActivity : AppCompatActivity() {
         IconUpdater.updateTodayIcon(this)
         createNotificationChannel()
         requestNotificationPermissionIfNeeded()
+        checkForGitHubUpdate()
 
         WindowCompat.setDecorFitsSystemWindows(window, true)
         webView = WebView(this)
@@ -90,6 +95,55 @@ class MainActivity : AppCompatActivity() {
         }
 
         webView.loadUrl("https://appassets.androidplatform.net/assets/www/index.html")
+    }
+
+    private fun checkForGitHubUpdate() {
+        Thread {
+            try {
+                val url = URL("https://api.github.com/repos/$GITHUB_REPO/releases/latest")
+                val conn = (url.openConnection() as HttpURLConnection).apply {
+                    connectTimeout = 5000
+                    readTimeout = 5000
+                    requestMethod = "GET"
+                    setRequestProperty("Accept", "application/vnd.github+json")
+                    setRequestProperty("User-Agent", "SmartCal-Android")
+                }
+                if (conn.responseCode != 200) return@Thread
+
+                val response = conn.inputStream.bufferedReader().use { it.readText() }
+                val json = JSONObject(response)
+                val latestTag = json.optString("tag_name", "").removePrefix("v").trim()
+                val assets = json.optJSONArray("assets")
+
+                var apkUrl = json.optString("html_url", "")
+                if (assets != null) {
+                    for (i in 0 until assets.length()) {
+                        val asset = assets.getJSONObject(i)
+                        if (asset.optString("name").endsWith(".apk")) {
+                            apkUrl = asset.optString("browser_download_url", apkUrl)
+                            break
+                        }
+                    }
+                }
+
+                val currentVer = packageManager.getPackageInfo(packageName, 0).versionName ?: "0"
+                if (latestTag.isNotEmpty() && latestTag != currentVer && apkUrl.isNotEmpty()) {
+                    runOnUiThread {
+                        if (!isFinishing && !isDestroyed) {
+                            AlertDialog.Builder(this)
+                                .setTitle("بروزرسانی جدید (نسخه $latestTag)")
+                                .setMessage("نسخه جدید تقویم هوشمند منتشر شده است. آیا مایل به دانلود و نصب آن هستید؟")
+                                .setPositiveButton("دانلود و نصب") { _, _ ->
+                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(apkUrl))
+                                    startActivity(intent)
+                                }
+                                .setNegativeButton("بعداً", null)
+                                .show()
+                        }
+                    }
+                }
+            } catch (_: Exception) {}
+        }.start()
     }
 
     private fun createNotificationChannel() {
