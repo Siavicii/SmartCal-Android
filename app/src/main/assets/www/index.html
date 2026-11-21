@@ -1350,7 +1350,7 @@ setTimeout(function(){ if (window.__dismissSmartSplash) window.__dismissSmartSpl
 <script>
 // Self-healing cache & Service Worker updater for v19
 (function(){
-  const VER = "v64.1";
+  const VER = "v64.3";
   if (localStorage.getItem("smartcal_sw_ver") !== VER) {
     localStorage.setItem("smartcal_sw_ver", VER);
     if ("caches" in window) {
@@ -5535,7 +5535,6 @@ const POSTCARD_THEMES = [
 function renderFal(skipPostcard = false){
   initBirthInputs();
   checkBirthdaySurprise(false);
-  if (!skipPostcard) generateBirthdayPostcard(false);
   const {y,m,d}=birthCfg;
   const z=ZODIAC_MONTHS[m-1];
   const animalIdx=((y-1300)%12+12)%12;
