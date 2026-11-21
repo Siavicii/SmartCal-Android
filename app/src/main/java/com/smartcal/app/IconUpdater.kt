@@ -46,25 +46,28 @@ object IconUpdater {
         val gy = cal.get(Calendar.YEAR)
         val gm = cal.get(Calendar.MONTH) + 1
         val gd = cal.get(Calendar.DAY_OF_MONTH)
-
         val jalali = JalaliHelper.gregorianToJalali(gy, gm, gd)
 
-        // Map any selected calendar system (jalali / kurdish / gregorian) onto available month/day icon slots
-        val (mSlot, dSlot) = when (calType) {
-            "gregorian" -> Pair(gm.coerceIn(1, 12), gd.coerceIn(1, 31))
-            "kurdish" -> Pair(jalali.month.coerceIn(1, 12), jalali.day.coerceIn(1, 31))
-            else -> Pair(jalali.month.coerceIn(1, 12), jalali.day.coerceIn(1, 31))
+        val targetAlias = when {
+            calType == "gregorian" || lang == "en" -> {
+                val gMax = intArrayOf(31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)[(gm - 1).coerceIn(0, 11)]
+                ".GM${gm.coerceIn(1, 12)}D${gd.coerceIn(1, gMax)}"
+            }
+            calType == "kurdish" || lang == "ku" -> {
+                val jm = jalali.month.coerceIn(1, 12)
+                val maxD = if (jm <= 6) 31 else 30
+                ".KM${jm}D${jalali.day.coerceIn(1, maxD)}"
+            }
+            else -> {
+                val jm = jalali.month.coerceIn(1, 12)
+                val maxD = if (jm <= 6) 31 else 30
+                ".M${jm}D${jalali.day.coerceIn(1, maxD)}"
+            }
         }
 
-        val maxD = if (mSlot <= 6) 31 else 30
-        val safeD = dSlot.coerceIn(1, maxD)
-        val targetAlias = ".M${mSlot}D${safeD}"
-
         val lastAlias = prefs.getString(KEY_LAST_ALIAS, DEFAULT_ALIAS) ?: DEFAULT_ALIAS
-        val modeMarker = "${calType}_${lang}"
-        val lastModeMarker = prefs.getString("last_mode_marker", "") ?: ""
 
-        if (lastAlias != targetAlias || modeMarker != lastModeMarker) {
+        if (lastAlias != targetAlias) {
             val pm = context.packageManager
             val pkg = context.packageName
 
@@ -76,15 +79,13 @@ object IconUpdater {
                 )
             } catch (_: Exception) {}
 
-            if (lastAlias != targetAlias) {
-                try {
-                    pm.setComponentEnabledSetting(
-                        ComponentName(pkg, "$pkg$lastAlias"),
-                        PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-                        PackageManager.DONT_KILL_APP
-                    )
-                } catch (_: Exception) {}
-            }
+            try {
+                pm.setComponentEnabledSetting(
+                    ComponentName(pkg, "$pkg$lastAlias"),
+                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                    PackageManager.DONT_KILL_APP
+                )
+            } catch (_: Exception) {}
 
             if (lastAlias != DEFAULT_ALIAS && targetAlias != DEFAULT_ALIAS) {
                 try {
@@ -96,10 +97,7 @@ object IconUpdater {
                 } catch (_: Exception) {}
             }
 
-            prefs.edit()
-                .putString(KEY_LAST_ALIAS, targetAlias)
-                .putString("last_mode_marker", modeMarker)
-                .apply()
+            prefs.edit().putString(KEY_LAST_ALIAS, targetAlias).apply()
         }
         scheduleNextMidnight(context)
     }

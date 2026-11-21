@@ -941,37 +941,28 @@ setTimeout(function(){
     </div>
   </div>
 
-  <!-- VIEW 4: HOROSCOPE, BIRTHDAY SURPRISE & AI POSTCARD GENERATOR -->
+  <!-- VIEW 4: HOROSCOPE & DAILY OMEN -->
   <div class="view" id="view-fal">
     <div class="card">
       <div class="mkt-head">
         <div>
-          <b style="font-size:15px">🔮 طالع‌بینی، فال روزانه و کارت پستال تولد</b>
+          <b style="font-size:15px" id="falMainTitle">🔮 طالع‌بینی و فال روزانه</b>
           <div style="font-size:11px;color:var(--sec);margin-top:2px" id="falDateSub">بر اساس تاریخ تولد و انرژی امروز</div>
         </div>
-        
       </div>
 
       <!-- Birthday Surprise Box (Appears automatically on user's birthday) -->
       <div id="falBdaySurprise" style="display:none"></div>
 
-      <!-- Birthdate & Name Selector -->
+      <!-- Birthdate Selector -->
       <div style="background:var(--sub);padding:11px;border-radius:15px;margin-bottom:12px;display:flex;flex-direction:column;gap:8px">
-        <b style="font-size:12px;color:var(--pri)">🎂 مشخصات و تاریخ تولد شما (شمسی):</b>
-        <input type="text" id="bNameInput" placeholder="نام شما برای درج روی کارت پستال (اختیاری)..." style="background:var(--card)">
+        <b style="font-size:12px;color:var(--pri)" id="falBirthTitle">🎂 تاریخ تولد شما (شمسی):</b>
         <div class="row3">
           <select id="bDay"></select>
           <select id="bMon"></select>
           <select id="bYear"></select>
         </div>
-        <button class="pbtn" style="padding:9px;font-size:12px" onclick="saveBirthAndCalcFal()">✨ ثبت تاریخ تولد و مشاهده طالع و کارت پستال</button>
-      </div>
-
-      
-        <input type="text" id="aiCustomWish" oninput="drawPostcardComposite()" placeholder="💌 متن تبریک دلخواه روی کارت (خالی = تبریک متناسب با برج شما)" style="background:var(--card);font-size:11.5px;padding:7px 10px">
-        <div class="postcard-wrap" style="margin-top:2px">
-          <canvas id="bdayCanvas" width="800" height="480" class="postcard-canvas"></canvas>
-        </div>
+        <button class="pbtn" id="falSaveBirthBtn" style="padding:9px;font-size:12px" onclick="saveBirthAndCalcFal()">✨ ثبت تاریخ تولد و مشاهده طالع روزانه</button>
       </div>
 
       <!-- Zodiac & Chinese Animal Badges -->
@@ -1888,13 +1879,8 @@ if (cfg.showCountryHol === undefined) cfg.showCountryHol = true;
 function setUiStyle(uiId){
   cfg.ui=uiId;
   localStorage.setItem("cal_cfg_v4",JSON.stringify(cfg));
-  if (window.AndroidBridge && window.AndroidBridge.syncCalendarAndLangToIcon) {
-    try { window.AndroidBridge.syncCalendarAndLangToIcon(cfg.calType || "jalali", cfg.lang || "fa"); } catch (e) {}
-  }
-  if (langChangedNow) {
-    alert("زبان برنامه تغییر کرد. برای اعمال کامل تغییرات، لطفاً برنامه را یک‌بار ببندید و مجدداً باز کنید.");
-  }
   applyCfg();
+  renderStyleCards();
 }
 
 const UI_STYLES_I18N={
@@ -2518,8 +2504,8 @@ function updateStatusDateBtnUI(primaryDayStr = "") {
   if (permStateEl) {
     if (hasNativeAndroidNotif) {
       permStateEl.textContent = statusNotifEnabled
-        ? "✅ فعال (اندروید بومی) • عدد روز در نوار وضعیت بالای گوشی نمایش داده می‌شود"
-        : "غیرفعال شده توسط شما";
+        ? tr("✅ فعال (اندروید بومی) • عدد روز در نوار وضعیت بالای گوشی نمایش داده می‌شود", "✅ چالاک (ئەندرۆید) • ژمارەی ڕۆژ لە شریتی سەرەوەی مۆبایل پیشان دەدرێت", "✅ Active (Android Native) • Day number shown in status bar")
+        : tr("غیرفعال شده توسط شما", "لەلایەن تۆوە ناچالاک کراوە", "Disabled by user");
       permStateEl.style.color = statusNotifEnabled ? "var(--grn)" : "var(--sec)";
     } else if (!("Notification" in window)) {
       permStateEl.textContent = isIosDevice() ? "در iOS نمایش اعلان در نوار بالا نیازمند iOS 16.4+ و نصب از Safari است" : "مرورگر فعلی از اعلان سیستم پشتیبانی نمی‌کند";
@@ -2893,22 +2879,20 @@ function applyLanguageUI() {
   ];
   fChips.forEach((ch, idx) => { if (fLabels[idx]) ch.textContent = fLabels[idx]; });
 
-  // Horoscope & AI Postcard View
-  setTxt("#view-fal .mkt-head b", "🔮 طالع‌بینی، فال روزانه و کارت پستال تولد", "🔮 بورج، فاڵی ڕۆژانە و پۆستکارتی لەدایکبوون", "🔮 Horoscope, Daily Omen & AI Birthday Card");
-  setTxt("#falRefreshBtn", "🔮 نیت مجدد هوش مصنوعی", "🔮 نیەتی نوێ بە زیرەکی دەستکرد", "🔮 New AI Horoscope");
-  const bdayBoxB = document.querySelector("#view-fal .card > div:nth-of-type(3) > b");
-  if (bdayBoxB) bdayBoxB.textContent = tr("🎂 مشخصات و تاریخ تولد شما (شمسی):", "🎂 زانیاری و ڕێکەوتی لەدایکبوونت (هەتاوی):", "🎂 Your Name & Birth Date (Solar Hijri):");
-  setPh("#bNameInput", "نام شما برای درج روی کارت پستال (اختیاری)...", "ناوی تۆ بۆ سەر پۆستکارت (ئارەزوومەندانە)...", "Your name for the birthday card (optional)...");
-  const saveBdayBtn = document.querySelector("#view-fal .card > div:nth-of-type(3) > .pbtn");
-  if (saveBdayBtn) saveBdayBtn.textContent = tr("✨ ثبت تاریخ تولد و مشاهده طالع و کارت پستال", "✨ تۆمارکردنی لەدایکبوون و بینینی بەخت و پۆستکارت", "✨ Save Birth Date & View Horoscope & Card");
-  setTxt("#genAiCardBtn", "🎨 طرح جدید", "🎨 دیزاینی نوێ", "🎨 New Theme");
-  const dlCardBtn = document.getElementById("genAiCardBtn")?.nextElementSibling;
-  if (dlCardBtn) dlCardBtn.textContent = tr("📥 ذخیره", "📥 پاشەکەوت", "📥 Save");
-  setPh("#aiCustomPrompt", "✍️ پرامپت دلخواه شما برای هوش مصنوعی (مثلاً: کهکشان بنفش با کیک تولد طلایی)...", "✍️ پرۆمپتی دڵخوازی تۆ بۆ زیرەکی دەستکرد...", "✍️ Custom AI prompt (e.g. Purple galaxy with golden birthday cake & fireworks)...");
-  setPh("#aiCustomWish", "💌 متن پیام تبریک دلخواه روی کارت (خالی = متن هوشمند برج فلکی)", "💌 دەقی پیرۆزبایی دڵخواز لەسەر کارتەکە...", "💌 Custom greeting message on card (leave blank for zodiac wish)");
+  // Horoscope & Daily Omen View (Clean, no postcard)
+  setTxt("#falMainTitle", "🔮 طالع‌بینی و فال روزانه", "🔮 بورج و فاڵی ڕۆژانە", "🔮 Daily Horoscope & Omen");
+  setTxt("#falBirthTitle", "🎂 تاریخ تولد شما (شمسی):", "🎂 ڕێکەوتی لەدایکبوونت (هەتاوی):", "🎂 Your Birth Date (Solar Hijri):");
+  setTxt("#falSaveBirthBtn", "✨ ثبت تاریخ تولد و مشاهده طالع روزانه", "✨ تۆمارکردنی لەدایکبوون و بینینی بەختی ڕۆژانە", "✨ Save Birth Date & View Horoscope");
+  initBirthInputs();
 
   // Modals (Style, City, Note, Converter, Settings)
   setTxt("#styleModal .s-head b", "🎨 طراحی، سبک‌ها و همگام‌سازی جوی", "🎨 دیزاین، ستایل و هاوکاتکردنی کەشوهەوا", "🎨 Themes, UI Styles & Weather Sync");
+  const atmTitleB = document.querySelector("#styleModal .sheet > div:nth-of-type(2) b");
+  if (atmTitleB) atmTitleB.textContent = tr("🌦️ همگام‌سازی زنده با آب‌وهوا و فصل", "🌦️ هاوکاتکردنی زیندوو لەگەڵ کەشوهەوا و وەرز", "🌦️ Live Weather & Season Sync");
+  const styleDescDiv = document.querySelector("#styleModal .sheet > div:nth-of-type(3)");
+  if (styleDescDiv) styleDescDiv.textContent = tr("ظاهر و چیدمان کل اپلیکیشن را بین طراحی‌های مدرن زیر انتخاب کنید:", "شێواز و دیزاینی گشتیی بەرنامە لە نێوان ستایلەکانی خوارەوە هەڵبژێرە:", "Choose the overall look and layout from the modern styles below:");
+  const styleAccB = document.querySelector("#styleSwatches")?.previousElementSibling;
+  if (styleAccB) styleAccB.textContent = tr("رنگ تاکیدی (Accent Color)", "ڕەنگی سەرەکی (Accent Color)", "Accent Color");
   setTxt("#cityModal .s-head b", "📍 انتخاب یا افزودن شهر دلخواه", "📍 هەڵبژاردن یان زیادکردنی شار", "📍 Select or Search City");
   setPh("#citySearchInput", "نام شهر را بنویسید...", "ناوی شار بنووسە...", "Enter city name (e.g. Tehran, London)...");
   setTxt("#convModal .s-head b", "🔄 مبدل جامع تاریخ (شمسی / کوردی / میلادی)", "🔄 گۆڕەری گشتیی ڕێکەوت (هەتاوی / کوردی / زایینی)", "🔄 Universal Date Converter (Jalali / Kurdish / Gregorian)");
@@ -3111,8 +3095,19 @@ function saveSettings(reload=false){
     syncViewToCalType(cfg.calType || "jalali");
   }
   localStorage.setItem("cal_cfg_v4",JSON.stringify(cfg));
+  if (window.AndroidBridge && window.AndroidBridge.syncCalendarAndLangToIcon) {
+    try { window.AndroidBridge.syncCalendarAndLangToIcon(cfg.calType || "jalali", cfg.lang || "fa"); } catch (e) {}
+  }
   applyCfg();render();
   if(reload) fetchWeather(true);
+  if (langChangedNow) {
+    const msg = tr(
+      "زبان برنامه تغییر کرد. برای اعمال کامل تغییرات، لطفاً برنامه را یک‌بار ببندید و مجدداً باز کنید.",
+      "زمانی بەرنامە گۆڕدرا. بۆ جێبەجێکردنی تەواوی گۆڕانکارییەکان، تکایە بەرنامەکە جارێک دابخە و دووبارە بیکەرەوە.",
+      "App language changed. Please close and reopen the app once to apply all changes completely."
+    );
+    alert(msg);
+  }
 }
 
 // Weather with Dynamic Day/Night Icons & Instant Auto-Refresh on App Visit
@@ -5323,17 +5318,17 @@ let falExtraOffset=0;
 let postcardVariant=0;
 
 function initBirthInputs(){
-  const dS=document.getElementById("bDay"),mS=document.getElementById("bMon"),yS=document.getElementById("bYear"),nI=document.getElementById("bNameInput");
-  if(!dS)return;
-  if(!dS.options.length){
-    for(let d=1;d<=31;d++) dS.innerHTML+=`<option value="${d}">${fa(d)}</option>`;
-    JM.forEach((m,i)=>mS.innerHTML+=`<option value="${i+1}">${m}</option>`);
-    for(let y=1320;y<=1405;y++) yS.innerHTML+=`<option value="${y}">${fa(y)}</option>`;
-  }
+  const dS=document.getElementById("bDay"),mS=document.getElementById("bMon"),yS=document.getElementById("bYear");
+  if(!dS||!mS||!yS)return;
+  const isKu = (cfg.lang==="ku" || cfg.calType==="kurdish");
+  const mArr = isKu ? getKM() : getJM();
+  dS.innerHTML=""; mS.innerHTML=""; yS.innerHTML="";
+  for(let d=1;d<=31;d++) dS.innerHTML+=`<option value="${d}">${fa(d)}</option>`;
+  mArr.forEach((m,i)=>mS.innerHTML+=`<option value="${i+1}">${m}</option>`);
+  for(let y=1320;y<=1405;y++) yS.innerHTML+=`<option value="${y}">${fa(y)}</option>`;
   dS.value=birthCfg.d;
   mS.value=birthCfg.m;
   yS.value=birthCfg.y;
-  if(nI && birthCfg.name) nI.value=birthCfg.name;
 }
 
 function checkBirthdaySurprise(justSaved=false){
