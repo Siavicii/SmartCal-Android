@@ -181,15 +181,14 @@ class MainActivity : AppCompatActivity() {
         val canvas = Canvas(bmp)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
-            typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
-            isFakeBoldText = true
-            style = Paint.Style.FILL_AND_STROKE
-            strokeWidth = 3.5f
+            typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
+            isFakeBoldText = false
+            style = Paint.Style.FILL
             textSize = 100f
         }
         val bounds = Rect()
         paint.getTextBounds(dayText, 0, dayText.length, bounds)
-        val target = size * 0.90f
+        val target = size * 0.88f
         val scale = minOf(
             target / bounds.width().coerceAtLeast(1),
             target / bounds.height().coerceAtLeast(1)
