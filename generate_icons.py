@@ -157,8 +157,8 @@ def make_icon(day_str, month_str, out_path, dark_mode=False, is_rtl=True):
     my = (142 * SCALE) - (mb[3] - mb[1]) / 2 - mb[1]
     draw.text((mx, my), month_str, font=f_mon, fill=mon_col, **kw)
 
-    final_img = img.resize((192, 192), Image.Resampling.LANCZOS)
-    final_img.save(out_path, format="PNG", optimize=True)
+    final_img = img.resize((144, 144), Image.Resampling.LANCZOS)
+    final_img.save(out_path, format="WEBP", quality=85, method=6)
 
 def make_timeless_launcher_icon(out_path, dark_mode=False):
     S = 192
@@ -180,11 +180,11 @@ def make_timeless_launcher_icon(out_path, dark_mode=False):
     draw.line([(90, 92), (102, 92)], fill=coral, width=9)
     draw.line([(102, 92), (102, 118)], fill=coral, width=9)
 
-    img.save(out_path, format="PNG", optimize=True)
+    img.resize((144, 144), Image.Resampling.LANCZOS).save(out_path, format="WEBP", quality=90, method=6)
 
 for ref in mipmap_refs:
-    light_p = os.path.join(res_light_dir, f"{ref}.png")
-    night_p = os.path.join(res_night_dir, f"{ref}.png")
+    light_p = os.path.join(res_light_dir, f"{ref}.webp")
+    night_p = os.path.join(res_night_dir, f"{ref}.webp")
 
     m_fa = re.match(r"^ic_m(\d\d)_d(\d\d)$", ref)
     m_ku = re.match(r"^ic_km(\d\d)_d(\d\d)$", ref)

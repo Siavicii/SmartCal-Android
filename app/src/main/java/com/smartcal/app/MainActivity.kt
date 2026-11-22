@@ -104,6 +104,8 @@ class MainActivity : AppCompatActivity() {
         } catch (_: Exception) {}
     }
 
+    private var hasRequestedStartupPerms = false
+
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) {
@@ -111,14 +113,20 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onStop() {
+        super.onStop()
+        // Update launcher activity-alias in background so Android never kills the app on first launch
+        try {
+            IconUpdater.updateTodayIcon(this)
+        } catch (_: Exception) {}
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
         super.onCreate(savedInstanceState)
 
-        IconUpdater.updateTodayIcon(this)
         createNotificationChannel()
-        requestEssentialPermissionsIfNeeded()
         WindowCompat.setDecorFitsSystemWindows(window, true)
         val isNightNow = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
         val bootBgColor = if (isNightNow) Color.parseColor("#0F172A") else Color.parseColor("#F4F6FA")
@@ -150,6 +158,18 @@ class MainActivity : AppCompatActivity() {
         webView.addJavascriptInterface(AndroidBridge(), "AndroidBridge")
 
         webView.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView?, url: String?) {
+                super.onPageFinished(view, url)
+                if (!hasRequestedStartupPerms) {
+                    hasRequestedStartupPerms = true
+                    webView.postDelayed({
+                        if (!isFinishing && !isDestroyed) {
+                            requestEssentialPermissionsIfNeeded()
+                        }
+                    }, 1500L)
+                }
+            }
+
             override fun shouldInterceptRequest(
                 view: WebView,
                 request: WebResourceRequest
@@ -632,6 +652,34 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun updateWidgetData(city: String, weather: String, summary: String) {
             SmartCalWidgetProvider.saveContent(this@MainActivity, city, weather, summary)
+        }
+
+        @JavascriptInterface
+        fun getSystemThemeJson(): String {
+            return try {
+                val isNight = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
+                    android.content.res.Configuration.UI_MODE_NIGHT_YES
+                val brand = (Build.MANUFACTURER ?: "Android").trim()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    fun hexOf(resId: Int): String {
+                        val c = ContextCompat.getColor(this@MainActivity, resId)
+                        return String.format("#%06X", 0xFFFFFF and c)
+                    }
+                    val priLight = hexOf(android.R.color.system_accent1_600)
+                    val priDark = hexOf(android.R.color.system_accent1_200)
+                    val bgLight = hexOf(android.R.color.system_neutral1_50)
+                    val cardLight = hexOf(android.R.color.system_neutral1_10)
+                    val subLight = hexOf(android.R.color.system_neutral2_100)
+                    val bgDark = hexOf(android.R.color.system_neutral1_900)
+                    val cardDark = hexOf(android.R.color.system_neutral1_800)
+                    val subDark = hexOf(android.R.color.system_neutral2_700)
+                    """{"supported":true,"isDark":$isNight,"uiStyle":"android17","brand":"$brand","priLight":"$priLight","priDark":"$priDark","bgLight":"$bgLight","cardLight":"$cardLight","subLight":"$subLight","bgDark":"$bgDark","cardDark":"$cardDark","subDark":"$subDark"}"""
+                } else {
+                    """{"supported":false,"isDark":$isNight,"uiStyle":"android17","brand":"$brand"}"""
+                }
+            } catch (_: Exception) {
+                """{"supported":false,"isDark":false,"uiStyle":"android17","brand":"Android"}"""
+            }
         }
 
         @JavascriptInterface

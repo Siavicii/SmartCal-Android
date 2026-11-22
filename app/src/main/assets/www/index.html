@@ -1989,7 +1989,21 @@ setTimeout(function(){ if (window.__dismissSmartSplash) window.__dismissSmartSpl
       </div>
     </div>
 
-    <div>
+    <!-- Dynamic Phone Theme, Accent Color & OS UI Sync (Material You / System UI) -->
+    <div class="sn-card" id="systemSyncCard">
+      <div class="sn-top">
+        <div class="sn-meta">
+          <b class="sn-title" id="systemSyncTitle">🎨 هماهنگی با رنگ، تم و UI گوشی</b>
+          <span class="sn-sub" id="systemSyncSub">تطبیق خودکار با رنگ والپیپر (Material You)، حالت شب/روز و رابط کاربری دستگاه</span>
+        </div>
+        <label class="sc-switch" aria-label="هماهنگی با رنگ و تم گوشی">
+          <input type="checkbox" id="setSystemSync" onchange="toggleSystemSync(this.checked)">
+          <span class="sc-switch-track"></span>
+        </label>
+      </div>
+    </div>
+
+    <div id="manualColorWrap" style="transition:opacity 0.2s ease">
       <b style="font-size:12px;color:var(--sec)">رنگ اصلی برنامه</b>
       <div class="swatches" id="colorSwatches"></div>
     </div>
@@ -2064,7 +2078,7 @@ setTimeout(function(){ if (window.__dismissSmartSplash) window.__dismissSmartSpl
 <script>
 // Self-healing cache & Service Worker updater for v19
 (function(){
-  const VER = "v65.5";
+  const VER = "v66.0";
   if (localStorage.getItem("smartcal_sw_ver") !== VER) {
     localStorage.setItem("smartcal_sw_ver", VER);
     if ("caches" in window) {
@@ -3757,6 +3771,7 @@ function applyLanguageUI() {
   if (typeof updateGcalSettingsUI === "function") updateGcalSettingsUI();
   if (typeof updateAiFalBtnLabel === "function") updateAiFalBtnLabel(false);
   if (typeof applyFontScaleUI === "function") applyFontScaleUI(cfg.fontScale || 100);
+  if (typeof updateSystemSyncLabels === "function") updateSystemSyncLabels();
 
   // Notes hub quick templates & labels
   const tplChips = document.querySelectorAll("#view-notes .fchip");
@@ -3841,16 +3856,73 @@ function applyLanguageUI() {
 }
 
 function applyCfg(){
-  const sysDark=matchMedia("(prefers-color-scheme:dark)").matches;
-  const isDark=cfg.theme==="dark"||(cfg.theme==="auto"&&sysDark);
-  document.documentElement.setAttribute("data-theme",isDark?"dark":"light");
-  document.documentElement.setAttribute("data-ui",cfg.ui||"ios26");
+  const rootStyle = document.documentElement.style;
+  const sysDark = matchMedia("(prefers-color-scheme:dark)").matches;
+  const useSysSync = !!cfg.systemSync;
+  const isDark = useSysSync ? sysDark : (cfg.theme==="dark"||(cfg.theme==="auto"&&sysDark));
+  document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
+
+  // Resolve effective UI style (OS-matched when systemSync is ON)
+  let effectiveUi = cfg.ui || "ios26";
+  let effectivePri = (COLORS[cfg.color] || COLORS[0])[isDark ? "d" : "l"];
+  let sysInfo = null;
+
+  if (useSysSync) {
+    if (window.AndroidBridge && typeof window.AndroidBridge.getSystemThemeJson === "function") {
+      try { sysInfo = JSON.parse(window.AndroidBridge.getSystemThemeJson() || "null"); } catch (e) {}
+    }
+    const ua = navigator.userAgent || "";
+    const isApple = /iPhone|iPad|iPod|Macintosh/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    const isAnd = /Android/i.test(ua) || !!window.AndroidBridge;
+    effectiveUi = (sysInfo && sysInfo.uiStyle) || (isApple ? "ios26" : (isAnd ? "android17" : "classic"));
+
+    if (sysInfo && sysInfo.supported) {
+      effectivePri = (isDark ? sysInfo.priDark : sysInfo.priLight) || effectivePri;
+      const dynBg = isDark ? sysInfo.bgDark : sysInfo.bgLight;
+      const dynCard = isDark ? sysInfo.cardDark : sysInfo.cardLight;
+      const dynSub = isDark ? sysInfo.subDark : sysInfo.subLight;
+      if (dynBg) rootStyle.setProperty("--bg", dynBg);
+      if (dynCard) rootStyle.setProperty("--card", dynCard);
+      if (dynSub) rootStyle.setProperty("--sub", dynSub);
+    } else {
+      rootStyle.removeProperty("--bg");
+      rootStyle.removeProperty("--card");
+      rootStyle.removeProperty("--sub");
+      // Try OS native AccentColor on modern desktop/mobile browsers
+      try {
+        const probe = document.createElement("span");
+        probe.style.color = "AccentColor";
+        probe.style.display = "none";
+        document.body.appendChild(probe);
+        const rgb = getComputedStyle(probe).color;
+        probe.remove();
+        const mRgb = rgb && rgb.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+        if (mRgb) {
+          const toHex = n => Number(n).toString(16).padStart(2, "0");
+          effectivePri = "#" + toHex(mRgb[1]) + toHex(mRgb[2]) + toHex(mRgb[3]);
+        }
+      } catch (e) {}
+    }
+  } else {
+    rootStyle.removeProperty("--bg");
+    rootStyle.removeProperty("--card");
+    rootStyle.removeProperty("--sub");
+  }
+
+  document.documentElement.setAttribute("data-ui", effectiveUi);
   const fontStack = FONT_STACKS[cfg.font] || FONT_STACKS.vazirmatn;
-  document.documentElement.style.setProperty("--app-font", fontStack);
+  rootStyle.setProperty("--app-font", fontStack);
   if (typeof applyFontScaleUI === "function") applyFontScaleUI(cfg.fontScale || 100);
-  const c=COLORS[cfg.color]||COLORS[0];
-  document.documentElement.style.setProperty("--pri",isDark?c.d:c.l);
-  document.documentElement.style.setProperty("--pri-bg",(isDark?c.d:c.l)+"26");
+  if (typeof updateSystemSyncLabels === "function") updateSystemSyncLabels();
+  rootStyle.setProperty("--pri", effectivePri);
+  rootStyle.setProperty("--pri-bg", effectivePri + "26");
+
+  const sysChk = document.getElementById("setSystemSync");
+  if (sysChk) sysChk.checked = useSysSync;
+  const colWrap = document.getElementById("manualColorWrap");
+  if (colWrap) colWrap.style.opacity = useSysSync ? "0.48" : "1";
+
+  if(window.AndroidBridge && window.AndroidBridge.syncWidgetTheme){ try{ window.AndroidBridge.syncWidgetTheme(effectiveUi, useSysSync ? "auto" : (cfg.theme||"auto"), effectivePri, cfg.calType||"jalali", cfg.lang||"fa"); }catch(e){} }
   document.getElementById("weatherCard").style.display=cfg.showW?"block":"none";
   document.getElementById("setTheme").value=cfg.theme;
   if(document.getElementById("setLang")) document.getElementById("setLang").value=cfg.lang||"fa";
@@ -5458,6 +5530,7 @@ function resetDefaultSettings() {
     lang: "fa",
     font: "vazirmatn",
     fontScale: 100,
+    systemSync: false,
     firstDay: 0,
     weekends: [6],
     autoLoc: true,
@@ -7081,7 +7154,7 @@ setTimeout(() => {
   try {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const onSchemeChange = () => {
-      if (typeof cfg !== "undefined" && cfg.theme === "auto" && typeof applyCfg === "function") {
+      if (typeof cfg !== "undefined" && (cfg.theme === "auto" || cfg.systemSync) && typeof applyCfg === "function") {
         applyCfg();
       }
     };
@@ -7660,6 +7733,58 @@ function onFontScaleInput(val) {
 function setFontScalePreset(val) {
   onFontScaleInput(val);
 }
+
+
+// =========================================================================
+// SYSTEM THEME, DYNAMIC COLOR (MATERIAL YOU) & OS UI SYNC CONTROLLER
+// =========================================================================
+function updateSystemSyncLabels() {
+  const tEl = document.getElementById("systemSyncTitle");
+  if (tEl) {
+    tEl.textContent = tr(
+      "🎨 هماهنگی با رنگ، تم و UI گوشی",
+      "🎨 هاوئاهەنگی لەگەڵ ڕەنگ و ڕووکاری مۆبایل",
+      "🎨 Match Phone Color, Theme & UI"
+    );
+  }
+  const sEl = document.getElementById("systemSyncSub");
+  if (sEl) {
+    sEl.textContent = cfg.systemSync
+      ? tr("فعال • همگام با رنگ و رابط کاربری سیستم", "چالاک • هاوکات لەگەڵ ڕەنگ و سیستەمی مۆبایل", "Active • Synced with system palette & UI")
+      : tr("تطبیق خودکار با رنگ والپیپر (Material You)، حالت شب/روز و UI دستگاه", "گونجاندنی خۆکار لەگەڵ ڕەنگی مۆبایل و دۆخی ڕووناک/تاریک", "Auto-match device wallpaper color, dark mode & OS UI");
+  }
+}
+
+function toggleSystemSync(enabled) {
+  cfg.systemSync = !!enabled;
+  if (cfg.systemSync) {
+    cfg.theme = "auto";
+  }
+  localStorage.setItem("cal_cfg_v4", JSON.stringify(cfg));
+  applyCfg();
+  updateSystemSyncLabels();
+  if (typeof syncThemeAndStatusBar === "function") syncThemeAndStatusBar();
+  if (window.AndroidBridge && window.AndroidBridge.showNativeToast) {
+    try {
+      window.AndroidBridge.showNativeToast(
+        cfg.systemSync
+          ? tr("هماهنگی با رنگ و تم گوشی فعال شد ✅", "هاوئاهەنگی لەگەڵ ڕەنگی مۆبایل چالاک کرا ✅", "Matched with device color & theme ✅")
+          : tr("حالت انتخاب دستی رنگ و تم فعال شد", "دۆخی هەڵبژاردنی دەستی چالاک کرا", "Manual color & theme mode enabled")
+      );
+    } catch (e) {}
+  }
+}
+
+// If user clicks a manual color swatch while systemSync is active, switch smoothly to manual color
+document.addEventListener("click", (e) => {
+  if (e.target && e.target.closest && e.target.closest("#colorSwatches .sw")) {
+    if (cfg && cfg.systemSync) {
+      cfg.systemSync = false;
+      localStorage.setItem("cal_cfg_v4", JSON.stringify(cfg));
+      updateSystemSyncLabels();
+    }
+  }
+}, true);
 
 </script>
 

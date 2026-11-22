@@ -14320,13 +14320,24 @@
             <receiver
             android:name=".SmartCalWidgetProvider"
             android:exported="true"
-            android:label="@string/app_name">
+            android:label="@string/widget_daily_name">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/smartcal_widget_info" />
+        </receiver>
+        <receiver
+            android:name=".SmartCalMonthWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_month_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/smartcal_month_widget_info" />
         </receiver>
     </application>
 </manifest>

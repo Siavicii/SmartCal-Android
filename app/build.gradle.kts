@@ -11,8 +11,8 @@ android {
         applicationId = "com.smartcal.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 86
-        versionName = "65.5"
+        versionCode = 87
+        versionName = "66.0"
     }
 
     buildTypes {
