@@ -1,4 +1,4 @@
-import os, re
+import os, re, urllib.request
 from PIL import Image, ImageDraw, ImageFont
 
 manifest_path = "app/src/main/AndroidManifest.xml"
@@ -27,7 +27,38 @@ EN_MONTHS = [
 def to_fa_digits(n):
     return str(n).translate(str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹"))
 
+def ensure_dastkhat_font():
+    local_ttf = "Dastkhat-Icon.ttf"
+    if os.path.exists(local_ttf) and os.path.getsize(local_ttf) > 10000:
+        return local_ttf
+    urls = [
+        "https://raw.githubusercontent.com/dastyar-io/dastkhat-font/main/dist/Dastkhat-Bold.ttf",
+        "https://raw.githubusercontent.com/dastyar-io/dastkhat-font/main/fonts/ttf/Dastkhat-Bold.ttf",
+        "https://cdn.jsdelivr.net/gh/dastyar-io/dastkhat-font@main/dist/Dastkhat-Bold.ttf",
+        "https://raw.githubusercontent.com/dastyar-io/dastkhat-font/main/dist/Dastkhat-Regular.ttf",
+        "https://raw.githubusercontent.com/dastyar-io/dastkhat-font/main/fonts/ttf/Dastkhat-Regular.ttf",
+        "https://cdn.jsdelivr.net/gh/dastyar-io/dastkhat-font@main/dist/Dastkhat-Regular.ttf"
+    ]
+    for url in urls:
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "SmartCal-IconGen/64.7"})
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                data = resp.read()
+                if len(data) > 10000:
+                    with open(local_ttf, "wb") as out_f:
+                        out_f.write(data)
+                    print("Downloaded Dastkhat handwritten font from:", url)
+                    return local_ttf
+        except Exception:
+            continue
+    return None
+
+dastkhat_path = ensure_dastkhat_font()
+
 font_black_candidates = [
+    dastkhat_path,
+    "Dastkhat-Bold.ttf",
+    "Dastkhat-Regular.ttf",
     "Vazirmatn-Black.ttf",
     "Vazirmatn-ExtraBold.ttf",
     "/usr/share/fonts/truetype/noto/NotoSansArabic-Black.ttf",
@@ -35,18 +66,23 @@ font_black_candidates = [
     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 ]
 font_bold_candidates = [
+    dastkhat_path,
+    "Dastkhat-Bold.ttf",
+    "Dastkhat-Regular.ttf",
     "Vazirmatn-Bold.ttf",
     "/usr/share/fonts/truetype/noto/NotoSansArabic-Bold.ttf",
     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 ]
 
-f_black = next((p for p in font_black_candidates if os.path.exists(p)), None)
-f_bold = next((p for p in font_bold_candidates if os.path.exists(p)), f_black)
+f_black = next((p for p in font_black_candidates if p and os.path.exists(p)), None)
+f_bold = next((p for p in font_bold_candidates if p and os.path.exists(p)), f_black)
+using_dastkhat = bool(f_black and "dastkhat" in f_black.lower())
+print(f"Using icon font: {f_black} (handwritten Dastkhat={using_dastkhat})")
 
-font_num_1d = ImageFont.truetype(f_black, 102)
-font_num_2d = ImageFont.truetype(f_black, 92)
-font_month_short = ImageFont.truetype(f_bold, 34)
-font_month_long = ImageFont.truetype(f_bold, 27)
+font_num_1d = ImageFont.truetype(f_black, 112 if using_dastkhat else 102)
+font_num_2d = ImageFont.truetype(f_black, 100 if using_dastkhat else 92)
+font_month_short = ImageFont.truetype(f_bold, 38 if using_dastkhat else 34)
+font_month_long = ImageFont.truetype(f_bold, 31 if using_dastkhat else 27)
 
 def make_icon(day_str, month_str, out_path, dark_mode=False, is_rtl=True):
     S = 192
@@ -77,6 +113,28 @@ def make_icon(day_str, month_str, out_path, dark_mode=False, is_rtl=True):
 
     img.save(out_path, format="PNG", optimize=True)
 
+def make_timeless_launcher_icon(out_path, dark_mode=False):
+    S = 192
+    bg_col = (31, 43, 59, 255)
+    img = Image.new("RGBA", (S, S), bg_col)
+    draw = ImageDraw.Draw(img)
+
+    white = (255, 255, 255, 255)
+    coral = (248, 113, 113, 255)
+    blue = (96, 165, 250, 255)
+
+    draw.rounded_rectangle([34, 46, 158, 158], radius=16, outline=white, width=9)
+    draw.line([(34, 74), (158, 74)], fill=white, width=8)
+    draw.rounded_rectangle([60, 28, 70, 56], radius=5, fill=white)
+    draw.rounded_rectangle([122, 28, 132, 56], radius=5, fill=white)
+
+    draw.rounded_rectangle([62, 92, 102, 132], radius=7, outline=coral, width=9)
+    draw.rounded_rectangle([90, 104, 130, 144], radius=7, outline=blue, width=9)
+    draw.line([(90, 92), (102, 92)], fill=coral, width=9)
+    draw.line([(102, 92), (102, 118)], fill=coral, width=9)
+
+    img.save(out_path, format="PNG", optimize=True)
+
 for ref in mipmap_refs:
     light_p = os.path.join(res_light_dir, f"{ref}.png")
     night_p = os.path.join(res_night_dir, f"{ref}.png")
@@ -98,7 +156,7 @@ for ref in mipmap_refs:
         make_icon(str(d_idx), EN_MONTHS[m_idx - 1], light_p, dark_mode=False, is_rtl=False)
         make_icon(str(d_idx), EN_MONTHS[m_idx - 1], night_p, dark_mode=True, is_rtl=False)
     else:
-        make_icon(to_fa_digits(30), "آبان", light_p, dark_mode=False, is_rtl=True)
-        make_icon(to_fa_digits(30), "آبان", night_p, dark_mode=True, is_rtl=True)
+        make_timeless_launcher_icon(light_p, dark_mode=False)
+        make_timeless_launcher_icon(night_p, dark_mode=True)
 
-print(f"Generated timeless light & night icons for {len(mipmap_refs)} refs (FA/KU/EN).")
+print(f"Generated handwritten Dastkhat icons for {len(mipmap_refs)} refs (FA/KU/EN).")

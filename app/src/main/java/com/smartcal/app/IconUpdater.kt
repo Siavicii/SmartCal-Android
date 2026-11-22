@@ -153,23 +153,27 @@ object IconUpdater {
             val jalali = JalaliHelper.gregorianToJalali(gy, gm, gd)
 
             val dayNum: String
+            val shortMonth: String
             val title: String
             val body: String
 
             when {
                 calType == "gregorian" || lang == "en" -> {
                     dayNum = gd.toString()
+                    shortMonth = EN_MONTHS[(gm - 1).coerceIn(0, 11)].take(3).uppercase()
                     title = "$gd ${EN_MONTHS[(gm - 1).coerceIn(0, 11)]} $gy"
                     body = "Smart Cal"
                 }
                 calType == "kurdish" || lang == "ku" -> {
                     val kuYear = jalali.year + 1321
                     dayNum = toPersianDigits(jalali.day)
+                    shortMonth = KU_MONTHS[(jalali.month - 1).coerceIn(0, 11)]
                     title = "${toPersianDigits(jalali.day)}ی ${KU_MONTHS[(jalali.month - 1).coerceIn(0, 11)]} ${toPersianDigits(kuYear)}"
                     body = "$gd ${EN_MONTHS[(gm - 1).coerceIn(0, 11)]} $gy"
                 }
                 else -> {
                     dayNum = toPersianDigits(jalali.day)
+                    shortMonth = FA_MONTHS[(jalali.month - 1).coerceIn(0, 11)]
                     title = "${toPersianDigits(jalali.day)} ${FA_MONTHS[(jalali.month - 1).coerceIn(0, 11)]} ${toPersianDigits(jalali.year)}"
                     body = "$gd ${EN_MONTHS[(gm - 1).coerceIn(0, 11)]} $gy"
                 }
@@ -184,8 +188,10 @@ object IconUpdater {
             )
 
             val dayIcon = IconCompat.createWithBitmap(createDayNumberBitmap(dayNum))
+            val largeCard = createDateCardBitmap(dayNum, shortMonth)
             val notif = NotificationCompat.Builder(context, STATUS_CHANNEL_ID)
                 .setSmallIcon(dayIcon)
+                .setLargeIcon(largeCard)
                 .setContentTitle(title)
                 .setContentText(body)
                 .setOngoing(true)
@@ -197,6 +203,46 @@ object IconUpdater {
             val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             nm.notify(STATUS_NOTIF_ID, notif)
         } catch (_: Exception) {}
+    }
+
+    fun createDateCardBitmap(dayText: String, monthText: String): Bitmap {
+        val size = 192
+        val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bmp)
+
+        val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.parseColor("#0F172A")
+            style = Paint.Style.FILL
+        }
+        canvas.drawRoundRect(0f, 0f, size.toFloat(), size.toFloat(), 44f, 44f, bgPaint)
+
+        val pillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.parseColor("#6EA8FF")
+            style = Paint.Style.FILL
+        }
+        canvas.drawRoundRect(68f, 18f, 124f, 24f, 3f, 3f, pillPaint)
+
+        val numPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.parseColor("#F8FAFC")
+            typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+            textSize = if (dayText.length >= 2) 86f else 96f
+            textAlign = Paint.Align.CENTER
+        }
+        val numBounds = Rect()
+        numPaint.getTextBounds(dayText, 0, dayText.length, numBounds)
+        canvas.drawText(dayText, size / 2f, 82f - numBounds.exactCenterY(), numPaint)
+
+        val monPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.parseColor("#6EA8FF")
+            typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+            textSize = if (monthText.length >= 7) 25f else 31f
+            textAlign = Paint.Align.CENTER
+        }
+        val monBounds = Rect()
+        monPaint.getTextBounds(monthText, 0, monthText.length, monBounds)
+        canvas.drawText(monthText, size / 2f, 148f - monBounds.exactCenterY(), monPaint)
+
+        return bmp
     }
 
     private fun createDayNumberBitmap(dayText: String): Bitmap {

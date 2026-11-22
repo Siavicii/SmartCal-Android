@@ -8,5 +8,6 @@ class DateChangeReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         IconUpdater.updateTodayIcon(context)
         IconUpdater.refreshStatusDateNotificationIfEnabled(context)
+        SmartCalWidgetProvider.updateAllWidgets(context)
     }
 }

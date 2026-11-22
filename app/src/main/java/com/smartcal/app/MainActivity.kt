@@ -439,8 +439,12 @@ class MainActivity : AppCompatActivity() {
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
                 val dayIcon = IconCompat.createWithBitmap(createDayNumberBitmap(dayNum))
+                val parts = title.trim().split(Regex("\\s+"))
+                val monthGuess = if (parts.size >= 2) parts[1] else "Smart"
+                val largeCard = IconUpdater.createDateCardBitmap(dayNum, monthGuess)
                 val notif = NotificationCompat.Builder(this@MainActivity, CHANNEL_ID)
                     .setSmallIcon(dayIcon)
+                    .setLargeIcon(largeCard)
                     .setContentTitle(title)
                     .setContentText(body)
                     .setOngoing(true)
@@ -571,6 +575,17 @@ class MainActivity : AppCompatActivity() {
                     am.set(android.app.AlarmManager.RTC_WAKEUP, triggerMs, pi)
                 }
             } catch (_: Exception) {}
+        }
+
+
+        @JavascriptInterface
+        fun updateWidgetData(city: String, weather: String, summary: String) {
+            SmartCalWidgetProvider.saveContent(this@MainActivity, city, weather, summary)
+        }
+
+        @JavascriptInterface
+        fun syncWidgetTheme(uiStyle: String, themeMode: String, accentHex: String, calType: String, lang: String) {
+            SmartCalWidgetProvider.saveTheme(this@MainActivity, uiStyle, themeMode, accentHex, calType, lang)
         }
 
         @JavascriptInterface
