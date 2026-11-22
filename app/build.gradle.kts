@@ -11,8 +11,8 @@ android {
         applicationId = "com.smartcal.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 78
-        versionName = "64.7"
+        versionCode = 83
+        versionName = "65.2"
     }
 
     buildTypes {
@@ -30,6 +30,14 @@ android {
     }
     kotlinOptions {
         jvmTarget = "17"
+    }
+    applicationVariants.all {
+        val variant = this
+        variant.outputs
+            .map { it as com.android.build.gradle.internal.api.BaseVariantOutputImpl }
+            .forEach { output ->
+                output.outputFileName = "SmartCal-v${variant.versionName}.apk"
+            }
     }
 }
 

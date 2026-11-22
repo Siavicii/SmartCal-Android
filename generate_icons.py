@@ -1,4 +1,4 @@
-import os, re, urllib.request
+import os, re, json, urllib.request
 from PIL import Image, ImageDraw, ImageFont
 
 manifest_path = "app/src/main/AndroidManifest.xml"
@@ -27,30 +27,82 @@ EN_MONTHS = [
 def to_fa_digits(n):
     return str(n).translate(str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹"))
 
+def _download_bytes(url, timeout=15):
+    req = urllib.request.Request(url, headers={"User-Agent": "SmartCal-IconGen/64.8"})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return resp.read()
+
+def _test_pillow_font(path):
+    try:
+        ImageFont.truetype(path, 48)
+        return True
+    except Exception:
+        return False
+
 def ensure_dastkhat_font():
     local_ttf = "Dastkhat-Icon.ttf"
-    if os.path.exists(local_ttf) and os.path.getsize(local_ttf) > 10000:
+    if os.path.exists(local_ttf) and os.path.getsize(local_ttf) > 10000 and _test_pillow_font(local_ttf):
         return local_ttf
-    urls = [
+
+    # 1) Discover exact font files from dastyar-io/dastkhat-font repo tree via GitHub API
+    discovered_ttf = []
+    discovered_woff2 = []
+    try:
+        tree_raw = _download_bytes("https://api.github.com/repos/dastyar-io/dastkhat-font/git/trees/main?recursive=1")
+        tree = json.loads(tree_raw.decode("utf-8")).get("tree", [])
+        for item in tree:
+            p = item.get("path", "")
+            pl = p.lower()
+            if pl.endswith(".ttf") or pl.endswith(".otf"):
+                discovered_ttf.append(f"https://raw.githubusercontent.com/dastyar-io/dastkhat-font/main/{p}")
+            elif pl.endswith(".woff2"):
+                discovered_woff2.append(f"https://raw.githubusercontent.com/dastyar-io/dastkhat-font/main/{p}")
+        # Prefer Bold over Regular
+        discovered_ttf.sort(key=lambda u: (0 if "bold" in u.lower() else 1, len(u)))
+        discovered_woff2.sort(key=lambda u: (0 if "bold" in u.lower() else 1, len(u)))
+    except Exception as e:
+        print("GitHub tree lookup warning:", e)
+
+    # Fallback direct URLs (including well-known Persian handwritten TTF repos)
+    fallback_ttf = [
         "https://raw.githubusercontent.com/dastyar-io/dastkhat-font/main/dist/Dastkhat-Bold.ttf",
-        "https://raw.githubusercontent.com/dastyar-io/dastkhat-font/main/fonts/ttf/Dastkhat-Bold.ttf",
-        "https://cdn.jsdelivr.net/gh/dastyar-io/dastkhat-font@main/dist/Dastkhat-Bold.ttf",
         "https://raw.githubusercontent.com/dastyar-io/dastkhat-font/main/dist/Dastkhat-Regular.ttf",
-        "https://raw.githubusercontent.com/dastyar-io/dastkhat-font/main/fonts/ttf/Dastkhat-Regular.ttf",
-        "https://cdn.jsdelivr.net/gh/dastyar-io/dastkhat-font@main/dist/Dastkhat-Regular.ttf"
+        "https://raw.githubusercontent.com/rastikerdar/vazirmatn/master/fonts/ttf/Vazirmatn-Bold.ttf"
     ]
-    for url in urls:
+
+    for url in discovered_ttf + fallback_ttf:
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": "SmartCal-IconGen/64.7"})
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                data = resp.read()
-                if len(data) > 10000:
-                    with open(local_ttf, "wb") as out_f:
-                        out_f.write(data)
-                    print("Downloaded Dastkhat handwritten font from:", url)
+            data = _download_bytes(url)
+            if len(data) > 10000:
+                with open(local_ttf, "wb") as out_f:
+                    out_f.write(data)
+                if _test_pillow_font(local_ttf):
+                    print("Loaded Dastkhat TTF from:", url)
                     return local_ttf
         except Exception:
             continue
+
+    # 2) If repo only ships .woff2, download and convert woff2 -> ttf via fontTools
+    for url in discovered_woff2:
+        try:
+            data = _download_bytes(url)
+            if len(data) > 5000:
+                w2_path = "Dastkhat-Icon.woff2"
+                with open(w2_path, "wb") as out_f:
+                    out_f.write(data)
+                try:
+                    from fontTools.ttLib import TTFont
+                    tt = TTFont(w2_path)
+                    tt.flavor = None
+                    tt.save(local_ttf)
+                    if _test_pillow_font(local_ttf):
+                        print("Converted Dastkhat WOFF2 -> TTF from:", url)
+                        return local_ttf
+                except Exception as conv_e:
+                    print("WOFF2 convert note:", conv_e)
+        except Exception:
+            continue
+
     return None
 
 dastkhat_path = ensure_dastkhat_font()
@@ -79,10 +131,10 @@ f_bold = next((p for p in font_bold_candidates if p and os.path.exists(p)), f_bl
 using_dastkhat = bool(f_black and "dastkhat" in f_black.lower())
 print(f"Using icon font: {f_black} (handwritten Dastkhat={using_dastkhat})")
 
-font_num_1d = ImageFont.truetype(f_black, 112 if using_dastkhat else 102)
-font_num_2d = ImageFont.truetype(f_black, 100 if using_dastkhat else 92)
-font_month_short = ImageFont.truetype(f_bold, 38 if using_dastkhat else 34)
-font_month_long = ImageFont.truetype(f_bold, 31 if using_dastkhat else 27)
+font_num_1d = ImageFont.truetype(f_black, 114 if using_dastkhat else 102)
+font_num_2d = ImageFont.truetype(f_black, 102 if using_dastkhat else 92)
+font_month_short = ImageFont.truetype(f_bold, 40 if using_dastkhat else 34)
+font_month_long = ImageFont.truetype(f_bold, 32 if using_dastkhat else 27)
 
 def make_icon(day_str, month_str, out_path, dark_mode=False, is_rtl=True):
     S = 192

@@ -188,10 +188,8 @@ object IconUpdater {
             )
 
             val dayIcon = IconCompat.createWithBitmap(createDayNumberBitmap(dayNum))
-            val largeCard = createDateCardBitmap(dayNum, shortMonth)
             val notif = NotificationCompat.Builder(context, STATUS_CHANNEL_ID)
                 .setSmallIcon(dayIcon)
-                .setLargeIcon(largeCard)
                 .setContentTitle(title)
                 .setContentText(body)
                 .setOngoing(true)
