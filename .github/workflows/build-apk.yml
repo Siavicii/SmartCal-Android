@@ -63,10 +63,18 @@ jobs:
           path: app/build/outputs/apk/release/*.apk
           if-no-files-found: error
 
+      - name: Extract versionName for release tag
+        id: ver
+        run: |
+          VER_NAME=$(grep -oE 'versionName\s*=\s*"[^"]+"' app/build.gradle.kts | head -n1 | sed -E 's/.*"([^"]+)".*/\1/')
+          test -n "$VER_NAME"
+          echo "tag=v${VER_NAME}" >> "$GITHUB_OUTPUT"
+          echo "title=SmartCal v${VER_NAME}" >> "$GITHUB_OUTPUT"
+
       - name: Publish to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v67
-          name: SmartCal v67
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: ${{ steps.ver.outputs.title }}
           files: app/build/outputs/apk/release/*.apk
           make_latest: true
