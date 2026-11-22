@@ -16,7 +16,8 @@ RSS_FEEDS = [
     ("ایرنا", "https://www.irna.ir/rss"),
     ("ایسنا", "https://www.isna.ir/rss"),
     ("خبرگزاری مهر", "https://www.mehrnews.com/rss"),
-    ("تسنیم", "https://www.tasnimnews.com/fa/rss/feed/0/8/0/%D8%A2%D8%AE%D8%B1%DB%8C%D9%86-%D8%A7%D8%AE%D8%A8%D8%A7%D8%B1"),
+    ("خبرآنلاین", "https://www.khabaronline.ir/rss"),
+
 ]
 
 KEYWORDS = [
