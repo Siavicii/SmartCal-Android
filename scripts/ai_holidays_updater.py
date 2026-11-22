@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
 SmartCal AI Emergency Holiday Scanner
-Fetches official Iranian news RSS feeds, analyzes confirmed closure announcements
-with Gemini API, and updates holidays.json automatically.
+Fetches official Iranian news RSS feeds, discovers available Gemini models
+automatically via ListModels, analyzes confirmed closure announcements,
+and updates holidays.json.
 """
 import datetime
 import json
@@ -94,13 +95,30 @@ def fetch_relevant_news():
             print(f"Warning: failed to fetch {source_name}: {e}")
     return items[:30]
 
+def discover_gemini_models(api_key):
+    url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
+    req = urllib.request.Request(url, method="GET")
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+    candidates = []
+    for m in data.get("models", []):
+        name = m.get("name", "")
+        methods = m.get("supportedGenerationMethods", [])
+        if "generateContent" in methods and "gemini" in name.lower():
+            short = name.replace("models/", "")
+            candidates.append(short)
+    # Prioritize flash models (fast & free-tier friendly)
+    flash_models = [c for c in candidates if "flash" in c.lower() and "image" not in c.lower() and "audio" not in c.lower()]
+    other_models = [c for c in candidates if c not in flash_models and "image" not in c.lower() and "audio" not in c.lower()]
+    ordered = flash_models + other_models
+    print("Available Gemini models:", ", ".join(ordered[:6]))
+    return ordered
+
 def call_gemini(api_key, news_lines, today_jalali, today_greg):
-    models = [
-        "gemini-2.5-flash",
-        "gemini-2.0-flash",
-        "gemini-2.0-flash-lite",
-        "gemini-1.5-flash",
-    ]
+    models = discover_gemini_models(api_key)
+    if not models:
+        raise RuntimeError("No generateContent-capable Gemini models found for this API key.")
+
     prompt = f"""
 امروز {today_jalali} شمسی (برابر با {today_greg} میلادی) است.
 تیتر و خلاصه خبرهای زیر از خبرگزاری‌های رسمی ایران استخراج شده است:
@@ -136,7 +154,7 @@ def call_gemini(api_key, news_lines, today_jalali, today_greg):
     }).encode("utf-8")
 
     last_err = None
-    for model in models:
+    for model in models[:5]:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
         req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
         try:
@@ -150,10 +168,8 @@ def call_gemini(api_key, news_lines, today_jalali, today_greg):
         except urllib.error.HTTPError as e:
             body = e.read().decode("utf-8", errors="ignore")[:200]
             last_err = f"{model} -> HTTP {e.code}: {body}"
-            if e.code == 404:
-                continue
-            raise RuntimeError(last_err)
-    raise RuntimeError(f"All Gemini models returned 404. Last: {last_err}")
+            continue
+    raise RuntimeError(f"Failed on discovered models. Last: {last_err}")
 
 def main():
     api_key = os.environ.get("GEMINI_API_KEY", "").strip()
