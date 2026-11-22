@@ -28,7 +28,7 @@ def to_fa_digits(n):
     return str(n).translate(str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹"))
 
 def _download_bytes(url, timeout=15):
-    req = urllib.request.Request(url, headers={"User-Agent": "SmartCal-IconGen/64.8"})
+    req = urllib.request.Request(url, headers={"User-Agent": "SmartCal-IconGen/65.3"})
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return resp.read()
 
@@ -39,12 +39,12 @@ def _test_pillow_font(path):
     except Exception:
         return False
 
-def ensure_dastkhat_font():
-    local_ttf = "Dastkhat-Icon.ttf"
+def ensure_clean_regular_font():
+    local_ttf = "Dastkhat-Regular-Icon.ttf"
     if os.path.exists(local_ttf) and os.path.getsize(local_ttf) > 10000 and _test_pillow_font(local_ttf):
         return local_ttf
 
-    # 1) Discover exact font files from dastyar-io/dastkhat-font repo tree via GitHub API
+    # 1) Discover Regular (non-bold) Dastkhat font files from dastyar-io/dastkhat-font
     discovered_ttf = []
     discovered_woff2 = []
     try:
@@ -57,17 +57,23 @@ def ensure_dastkhat_font():
                 discovered_ttf.append(f"https://raw.githubusercontent.com/dastyar-io/dastkhat-font/main/{p}")
             elif pl.endswith(".woff2"):
                 discovered_woff2.append(f"https://raw.githubusercontent.com/dastyar-io/dastkhat-font/main/{p}")
-        # Prefer Bold over Regular
-        discovered_ttf.sort(key=lambda u: (0 if "bold" in u.lower() else 1, len(u)))
-        discovered_woff2.sort(key=lambda u: (0 if "bold" in u.lower() else 1, len(u)))
+        # Strictly prefer Regular / Medium (non-bold) over Bold
+        def weight_rank(u):
+            ul = u.lower()
+            if "regular" in ul: return 0
+            if "medium" in ul: return 1
+            if "light" in ul: return 2
+            if "bold" in ul or "black" in ul: return 9
+            return 3
+        discovered_ttf.sort(key=lambda u: (weight_rank(u), len(u)))
+        discovered_woff2.sort(key=lambda u: (weight_rank(u), len(u)))
     except Exception as e:
         print("GitHub tree lookup warning:", e)
 
-    # Fallback direct URLs (including well-known Persian handwritten TTF repos)
     fallback_ttf = [
-        "https://raw.githubusercontent.com/dastyar-io/dastkhat-font/main/dist/Dastkhat-Bold.ttf",
         "https://raw.githubusercontent.com/dastyar-io/dastkhat-font/main/dist/Dastkhat-Regular.ttf",
-        "https://raw.githubusercontent.com/rastikerdar/vazirmatn/master/fonts/ttf/Vazirmatn-Bold.ttf"
+        "https://raw.githubusercontent.com/rastikerdar/vazirmatn/master/fonts/ttf/Vazirmatn-Regular.ttf",
+        "https://raw.githubusercontent.com/rastikerdar/vazirmatn/master/fonts/ttf/Vazirmatn-Medium.ttf"
     ]
 
     for url in discovered_ttf + fallback_ttf:
@@ -77,17 +83,17 @@ def ensure_dastkhat_font():
                 with open(local_ttf, "wb") as out_f:
                     out_f.write(data)
                 if _test_pillow_font(local_ttf):
-                    print("Loaded Dastkhat TTF from:", url)
+                    print("Loaded Regular font from:", url)
                     return local_ttf
         except Exception:
             continue
 
-    # 2) If repo only ships .woff2, download and convert woff2 -> ttf via fontTools
+    # 2) If repo only ships .woff2, convert Regular woff2 -> ttf via fontTools
     for url in discovered_woff2:
         try:
             data = _download_bytes(url)
             if len(data) > 5000:
-                w2_path = "Dastkhat-Icon.woff2"
+                w2_path = "Dastkhat-Regular-Icon.woff2"
                 with open(w2_path, "wb") as out_f:
                     out_f.write(data)
                 try:
@@ -96,7 +102,7 @@ def ensure_dastkhat_font():
                     tt.flavor = None
                     tt.save(local_ttf)
                     if _test_pillow_font(local_ttf):
-                        print("Converted Dastkhat WOFF2 -> TTF from:", url)
+                        print("Converted Regular WOFF2 -> TTF from:", url)
                         return local_ttf
                 except Exception as conv_e:
                     print("WOFF2 convert note:", conv_e)
@@ -105,65 +111,54 @@ def ensure_dastkhat_font():
 
     return None
 
-dastkhat_path = ensure_dastkhat_font()
+regular_font_path = ensure_clean_regular_font()
 
-font_black_candidates = [
-    dastkhat_path,
-    "Dastkhat-Bold.ttf",
+font_regular_candidates = [
+    regular_font_path,
     "Dastkhat-Regular.ttf",
-    "Vazirmatn-Black.ttf",
-    "Vazirmatn-ExtraBold.ttf",
-    "/usr/share/fonts/truetype/noto/NotoSansArabic-Black.ttf",
-    "/usr/share/fonts/truetype/noto/NotoSansArabic-Bold.ttf",
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-]
-font_bold_candidates = [
-    dastkhat_path,
-    "Dastkhat-Bold.ttf",
-    "Dastkhat-Regular.ttf",
-    "Vazirmatn-Bold.ttf",
-    "/usr/share/fonts/truetype/noto/NotoSansArabic-Bold.ttf",
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+    "Vazirmatn-Regular.ttf",
+    "Vazirmatn-Medium.ttf",
+    "/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 ]
 
-f_black = next((p for p in font_black_candidates if p and os.path.exists(p)), None)
-f_bold = next((p for p in font_bold_candidates if p and os.path.exists(p)), f_black)
-using_dastkhat = bool(f_black and "dastkhat" in f_black.lower())
-print(f"Using icon font: {f_black} (handwritten Dastkhat={using_dastkhat})")
+f_reg = next((p for p in font_regular_candidates if p and os.path.exists(p)), None)
+using_dastkhat = bool(f_reg and "dastkhat" in f_reg.lower())
+print(f"Using clean non-bold icon font: {f_reg} (dastkhat={using_dastkhat})")
 
-font_num_1d = ImageFont.truetype(f_black, 114 if using_dastkhat else 102)
-font_num_2d = ImageFont.truetype(f_black, 102 if using_dastkhat else 92)
-font_month_short = ImageFont.truetype(f_bold, 40 if using_dastkhat else 34)
-font_month_long = ImageFont.truetype(f_bold, 32 if using_dastkhat else 27)
+# Supersampled 2x canvas (384 -> 192) for razor-sharp, readable anti-aliased typography
+SCALE = 2
+font_num_1d = ImageFont.truetype(f_reg, (108 if using_dastkhat else 98) * SCALE)
+font_num_2d = ImageFont.truetype(f_reg, (96 if using_dastkhat else 88) * SCALE)
+font_month_short = ImageFont.truetype(f_reg, (36 if using_dastkhat else 32) * SCALE)
+font_month_long = ImageFont.truetype(f_reg, (29 if using_dastkhat else 26) * SCALE)
 
 def make_icon(day_str, month_str, out_path, dark_mode=False, is_rtl=True):
-    S = 192
+    S = 192 * SCALE
     bg_col = (15, 23, 42, 255) if dark_mode else (255, 255, 255, 255)
     num_col = (248, 250, 252, 255) if dark_mode else (15, 23, 42, 255)
     mon_col = (110, 168, 255, 255) if dark_mode else (27, 110, 243, 255)
-    bar_col = (110, 168, 255, 190) if dark_mode else (27, 110, 243, 210)
 
     img = Image.new("RGBA", (S, S), bg_col)
     draw = ImageDraw.Draw(img)
 
-    # Subtle minimalist top accent pill
-    draw.rounded_rectangle([68, 18, 124, 24], radius=3, fill=bar_col)
-
     kw = {"direction": "rtl", "language": "fa"} if is_rtl else {}
 
+    # Clean, balanced vertical centering (no top blue bar)
     f_num = font_num_2d if len(day_str) >= 2 else font_num_1d
     nb = draw.textbbox((0, 0), day_str, font=f_num, **kw)
     nx = (S - (nb[2] - nb[0])) / 2 - nb[0]
-    ny = 78 - (nb[3] - nb[1]) / 2 - nb[1]
+    ny = (74 * SCALE) - (nb[3] - nb[1]) / 2 - nb[1]
     draw.text((nx, ny), day_str, font=f_num, fill=num_col, **kw)
 
     f_mon = font_month_long if len(month_str) >= 7 else font_month_short
     mb = draw.textbbox((0, 0), month_str, font=f_mon, **kw)
     mx = (S - (mb[2] - mb[0])) / 2 - mb[0]
-    my = 148 - (mb[3] - mb[1]) / 2 - mb[1]
+    my = (142 * SCALE) - (mb[3] - mb[1]) / 2 - mb[1]
     draw.text((mx, my), month_str, font=f_mon, fill=mon_col, **kw)
 
-    img.save(out_path, format="PNG", optimize=True)
+    final_img = img.resize((192, 192), Image.Resampling.LANCZOS)
+    final_img.save(out_path, format="PNG", optimize=True)
 
 def make_timeless_launcher_icon(out_path, dark_mode=False):
     S = 192
@@ -211,4 +206,4 @@ for ref in mipmap_refs:
         make_timeless_launcher_icon(light_p, dark_mode=False)
         make_timeless_launcher_icon(night_p, dark_mode=True)
 
-print(f"Generated handwritten Dastkhat icons for {len(mipmap_refs)} refs (FA/KU/EN).")
+print(f"Generated clean non-bold icons (no top bar) for {len(mipmap_refs)} refs (FA/KU/EN).")

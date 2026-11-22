@@ -1238,6 +1238,59 @@ input[type="range"]::-moz-range-thumb {
   }
 }
 
+
+/* =========================================================================
+   LAYOUT-SAFE GLOBAL FONT & UI SCALE ENGINE (90% - 118%)
+   ========================================================================= */
+:root {
+  --font-scale: 1;
+  --nav-scale: 1;
+}
+.app {
+  zoom: var(--font-scale, 1);
+}
+.modal .sheet,
+#smartSelectPicker .sp-sheet {
+  zoom: var(--font-scale, 1);
+}
+.nav {
+  zoom: var(--nav-scale, 1);
+}
+/* Prevent top bar & grids from ever breaking layout at larger scales */
+.bar {
+  max-width: 100%;
+  overflow: hidden;
+}
+.bar .pill,
+.bar .ibtn {
+  min-width: 0;
+  white-space: nowrap;
+}
+.font-scale-presets {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+  margin-top: 6px;
+}
+.fs-chip {
+  padding: 6px 4px;
+  border-radius: 10px;
+  border: 1px solid var(--brd);
+  background: var(--card);
+  color: var(--txt);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.16s ease;
+}
+.fs-chip.act {
+  background: var(--pri);
+  color: var(--onpri);
+  border-color: var(--pri);
+}
+
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -1778,6 +1831,21 @@ setTimeout(function(){ if (window.__dismissSmartSplash) window.__dismissSmartSpl
       </select>
     </div>
 
+    <!-- Safe Global Font Size Control -->
+    <div id="fontScaleBox" style="background:var(--sub);padding:11px;border-radius:14px;border:1px solid var(--brd);display:flex;flex-direction:column;gap:7px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:6px">
+        <b id="fontScaleTitle" style="font-size:12px;color:var(--pri)">🔎 اندازه نوشته‌ها و خوانایی برنامه</b>
+        <span id="fontScaleVal" class="tag" style="font-size:11px;font-weight:800;color:var(--pri)">۱۰۰٪</span>
+      </div>
+      <input type="range" id="setFontScale" min="90" max="118" step="2" value="100" oninput="onFontScaleInput(this.value)">
+      <div class="font-scale-presets">
+        <button type="button" class="fs-chip" data-fs="92" onclick="setFontScalePreset(92)">کوچک</button>
+        <button type="button" class="fs-chip act" data-fs="100" onclick="setFontScalePreset(100)">استاندارد</button>
+        <button type="button" class="fs-chip" data-fs="108" onclick="setFontScalePreset(108)">بزرگ</button>
+        <button type="button" class="fs-chip" data-fs="116" onclick="setFontScalePreset(116)">خیلی بزرگ</button>
+      </div>
+    </div>
+
     <div>
       <b style="font-size:12px;color:var(--sec)">تقویم اصلی (اولویت نمایش)</b>
       <select id="setCalType" style="margin-top:5px" onchange="saveSettings(true)">
@@ -1886,7 +1954,7 @@ setTimeout(function(){ if (window.__dismissSmartSplash) window.__dismissSmartSpl
 <script>
 // Self-healing cache & Service Worker updater for v19
 (function(){
-  const VER = "v65.2";
+  const VER = "v65.4";
   if (localStorage.getItem("smartcal_sw_ver") !== VER) {
     localStorage.setItem("smartcal_sw_ver", VER);
     if ("caches" in window) {
@@ -2067,7 +2135,7 @@ function g2h(gy,gm,gd){
   let m=gm,y=gy;if(m<3){y-=1;m+=12}
   let a=Math.floor(y/100),b=2-a+Math.floor(a/4);
   if(y<1583)b=0;if(y===1582){if(m>10)b=-10;if(m===10){b=0;if(gd>4)b=-10}}
-  let jd=Math.floor(365.25*(y+4716))+Math.floor(30.6001*(m+1))+gd+b-1524;
+  let jd=Math.floor(365.35*(y+4716))+Math.floor(30.6001*(m+1))+gd+b-1524;
   let iyear=10631./30.,epochastro=1948084,shift1=8.01/60.,z=jd-epochastro;
   let cyc=Math.floor(z/10631.);z=z-10631*cyc;let j=Math.floor((z-shift1)/iyear);
   let iy=30*cyc+j;z=z-Math.floor(j*iyear+shift1);let im=Math.floor((z+28.5001)/29.5);
@@ -3576,6 +3644,7 @@ function applyLanguageUI() {
   setTxt("#copyGregDateBtn", "📋 میلادی", "📋 زایینی", "📋 Gregorian");
   if (typeof updateGcalSettingsUI === "function") updateGcalSettingsUI();
   if (typeof updateAiFalBtnLabel === "function") updateAiFalBtnLabel(false);
+  if (typeof applyFontScaleUI === "function") applyFontScaleUI(cfg.fontScale || 100);
 
   // Notes hub quick templates & labels
   const tplChips = document.querySelectorAll("#view-notes .fchip");
@@ -3668,6 +3737,7 @@ function applyCfg(){
   document.documentElement.setAttribute("data-ui",cfg.ui||"ios26");
   const fontStack = FONT_STACKS[cfg.font] || FONT_STACKS.vazirmatn;
   document.documentElement.style.setProperty("--app-font", fontStack);
+  if (typeof applyFontScaleUI === "function") applyFontScaleUI(cfg.fontScale || 100);
   const c=COLORS[cfg.color]||COLORS[0];
   document.documentElement.style.setProperty("--pri",isDark?c.d:c.l);
   document.documentElement.style.setProperty("--pri-bg",(isDark?c.d:c.l)+"26");
@@ -5277,6 +5347,7 @@ function resetDefaultSettings() {
     calType: "jalali",
     lang: "fa",
     font: "vazirmatn",
+    fontScale: 100,
     firstDay: 0,
     weekends: [6],
     autoLoc: true,
@@ -7372,6 +7443,57 @@ async function fetchAiDailyFal(forceNew = false) {
     aiFalLoading = false;
     updateAiFalBtnLabel(false);
   }
+}
+
+
+// =========================================================================
+// SAFE GLOBAL FONT SCALE CONTROLLER (90% - 118%, Layout-Preserving)
+// =========================================================================
+function applyFontScaleUI(pct) {
+  const num = Math.max(90, Math.min(118, Number(pct) || 100));
+  const scale = +(num / 100).toFixed(3);
+  // Cap bottom navigation scale slightly so 4 tabs never overflow horizontally
+  const navScale = +(Math.min(num, 106) / 100).toFixed(3);
+  document.documentElement.style.setProperty("--font-scale", String(scale));
+  document.documentElement.style.setProperty("--nav-scale", String(navScale));
+
+  const rng = document.getElementById("setFontScale");
+  if (rng && Number(rng.value) !== num) rng.value = String(num);
+
+  const valEl = document.getElementById("fontScaleVal");
+  if (valEl) valEl.textContent = (cfg.lang === "en" ? `${num}%` : `${fa(num)}٪`);
+
+  const titleEl = document.getElementById("fontScaleTitle");
+  if (titleEl) {
+    titleEl.textContent = tr(
+      "🔎 اندازه نوشته‌ها و خوانایی برنامه",
+      "🔎 قەبارەی نووسینەکان و خوێندنەوە",
+      "🔎 Text Size & Readability"
+    );
+  }
+
+  const labels = [
+    tr("کوچک", "بچووک", "Small"),
+    tr("استاندارد", "ئاسایی", "Default"),
+    tr("بزرگ", "گەورە", "Large"),
+    tr("خیلی بزرگ", "زۆر گەورە", "XL")
+  ];
+  document.querySelectorAll(".fs-chip").forEach((btn, i) => {
+    if (labels[i]) btn.textContent = labels[i];
+    const target = Number(btn.getAttribute("data-fs"));
+    btn.classList.toggle("act", Math.abs(target - num) <= 2);
+  });
+}
+
+function onFontScaleInput(val) {
+  const num = Math.max(90, Math.min(118, Number(val) || 100));
+  cfg.fontScale = num;
+  localStorage.setItem("cal_cfg_v4", JSON.stringify(cfg));
+  applyFontScaleUI(num);
+}
+
+function setFontScalePreset(val) {
+  onFontScaleInput(val);
 }
 
 </script>
