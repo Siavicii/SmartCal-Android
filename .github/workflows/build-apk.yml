@@ -9,6 +9,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout repository
@@ -19,9 +21,6 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
 
       - name: Set up Python & Pillow for dynamic icons
         if: hashFiles('generate_icons.py') != ''
@@ -43,6 +42,9 @@ jobs:
           echo "$KEYSTORE_BASE64" | tr -d '\r\n' | base64 --decode > app/smartcal-release.jks
           test -s app/smartcal-release.jks
 
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
       - name: Build signed Release APK
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -60,3 +62,11 @@ jobs:
           name: SmartCal-Release-APK
           path: app/build/outputs/apk/release/*.apk
           if-no-files-found: error
+
+      - name: Publish to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v67
+          name: SmartCal v67
+          files: app/build/outputs/apk/release/*.apk
+          make_latest: true
