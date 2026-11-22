@@ -56,13 +56,17 @@ object IconUpdater {
             .apply()
     }
 
-    fun updatePreferencesAndIcon(context: Context, calType: String?, lang: String?) {
+    fun updatePreferencesAndIcon(context: Context, calType: String?, lang: String?, deferIconSwitch: Boolean = false) {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val editor = prefs.edit()
         if (!calType.isNullOrBlank()) editor.putString(KEY_CAL_TYPE, calType)
         if (!lang.isNullOrBlank()) editor.putString(KEY_LANG, lang)
         editor.apply()
-        updateTodayIcon(context)
+        if (!deferIconSwitch) {
+            updateTodayIcon(context)
+        } else {
+            scheduleNextMidnight(context)
+        }
         refreshStatusDateNotificationIfEnabled(context)
     }
 

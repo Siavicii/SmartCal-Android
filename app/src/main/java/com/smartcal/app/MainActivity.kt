@@ -115,10 +115,12 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStop() {
         super.onStop()
-        // Update launcher activity-alias in background so Android never kills the app on first launch
-        try {
-            IconUpdater.updateTodayIcon(this)
-        } catch (_: Exception) {}
+        // Only switch launcher activity-alias when app truly moves to background (never during launch or config change)
+        if (!isChangingConfigurations) {
+            try {
+                IconUpdater.updateTodayIcon(this)
+            } catch (_: Exception) {}
+        }
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -381,8 +383,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
-        IconUpdater.updateTodayIcon(this)
-        val isNight = (newConfig.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
         if (this::webView.isInitialized) {
             runOnUiThread {
                 webView.evaluateJavascript(
@@ -395,7 +395,11 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        IconUpdater.updateTodayIcon(this)
+        // Do NOT toggle launcher activity-alias in onResume(); Android kills the foreground Activity on first install!
+        // Only schedule the midnight alarm safely here; icon alias swap happens cleanly in onStop().
+        try {
+            IconUpdater.scheduleNextMidnight(this)
+        } catch (_: Exception) {}
     }
 
     override fun onDestroy() {
@@ -438,7 +442,7 @@ class MainActivity : AppCompatActivity() {
         fun syncCalendarAndLangToIcon(calType: String, lang: String) {
             runOnUiThread {
                 try {
-                    IconUpdater.updatePreferencesAndIcon(this@MainActivity, calType, lang)
+                    IconUpdater.updatePreferencesAndIcon(this@MainActivity, calType, lang, deferIconSwitch = true)
                 } catch (_: Exception) {}
             }
         }
