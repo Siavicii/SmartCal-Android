@@ -1756,6 +1756,19 @@ setTimeout(function(){ if (window.__dismissSmartSplash) window.__dismissSmartSpl
 <div class="modal" id="styleModal">
   <div class="sheet">
     <div class="s-head"><b>🎨 طراحی، سبک‌ها و همگام‌سازی جوی</b><button class="ibtn" onclick="closeModals()">✕</button></div>
+    <!-- Dynamic Phone Theme, Accent Color & OS UI Sync (Material You / System UI) -->
+    <div class="sn-card" id="systemSyncCard">
+      <div class="sn-top">
+        <div class="sn-meta">
+          <b class="sn-title" id="systemSyncTitle">🎨 هماهنگی با رنگ، تم و UI گوشی</b>
+          <span class="sn-sub" id="systemSyncSub">تطبیق خودکار با رنگ والپیپر (Material You)، حالت شب/روز و رابط کاربری دستگاه</span>
+        </div>
+        <label class="sc-switch" aria-label="هماهنگی با رنگ و تم گوشی">
+          <input type="checkbox" id="setSystemSync" onchange="toggleSystemSync(this.checked)">
+          <span class="sc-switch-track"></span>
+        </label>
+      </div>
+    </div>
     <div style="background:var(--sub);padding:10px 12px;border-radius:14px;border:1px solid var(--brd);display:flex;justify-content:space-between;align-items:center;gap:8px">
       <div>
         <b style="font-size:12px;color:var(--pri);display:block">🌦️ همگام‌سازی زنده با آب‌وهوا و فصل</b>
@@ -1989,20 +2002,6 @@ setTimeout(function(){ if (window.__dismissSmartSplash) window.__dismissSmartSpl
       </div>
     </div>
 
-    <!-- Dynamic Phone Theme, Accent Color & OS UI Sync (Material You / System UI) -->
-    <div class="sn-card" id="systemSyncCard">
-      <div class="sn-top">
-        <div class="sn-meta">
-          <b class="sn-title" id="systemSyncTitle">🎨 هماهنگی با رنگ، تم و UI گوشی</b>
-          <span class="sn-sub" id="systemSyncSub">تطبیق خودکار با رنگ والپیپر (Material You)، حالت شب/روز و رابط کاربری دستگاه</span>
-        </div>
-        <label class="sc-switch" aria-label="هماهنگی با رنگ و تم گوشی">
-          <input type="checkbox" id="setSystemSync" onchange="toggleSystemSync(this.checked)">
-          <span class="sc-switch-track"></span>
-        </label>
-      </div>
-    </div>
-
     <div id="manualColorWrap" style="transition:opacity 0.2s ease">
       <b style="font-size:12px;color:var(--sec)">رنگ اصلی برنامه</b>
       <div class="swatches" id="colorSwatches"></div>
@@ -2078,7 +2077,7 @@ setTimeout(function(){ if (window.__dismissSmartSplash) window.__dismissSmartSpl
 <script>
 // Self-healing cache & Service Worker updater for v19
 (function(){
-  const VER = "v66.0";
+  const VER = "v66.2";
   if (localStorage.getItem("smartcal_sw_ver") !== VER) {
     localStorage.setItem("smartcal_sw_ver", VER);
     if ("caches" in window) {
@@ -2672,14 +2671,14 @@ const __uaStr = navigator.userAgent || "";
 const __isAppleOS = /iPhone|iPad|iPod|Macintosh/i.test(__uaStr) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 const __isAndroidOS = /Android/i.test(__uaStr);
 const __defaultAdaptiveUi = __isAppleOS ? "ios26" : (__isAndroidOS ? "android17" : "classic");
-let cfg=JSON.parse(localStorage.getItem("cal_cfg_v4")||JSON.stringify({theme:"auto",color:0,ui:__defaultAdaptiveUi,city:"35.6892,51.3890,تهران",showW:true,showG:true,calType:"jalali",lang:"fa",font:"vazirmatn",firstDay:0,weekends:[6],autoLoc:true,autoSyncCalLang:true}));
+let cfg=JSON.parse(localStorage.getItem("cal_cfg_v4")||JSON.stringify({theme:"auto",color:0,ui:__defaultAdaptiveUi,city:"35.6892,51.3890,تهران",showW:true,showG:true,calType:"jalali",lang:"fa",font:"vazirmatn",firstDay:0,weekends:[6],autoLoc:false,autoSyncCalLang:true}));
 if(!cfg.ui) cfg.ui="ios26";
 if(!cfg.calType || cfg.calType==="hijri") cfg.calType="jalali";
 if(!cfg.lang) cfg.lang="fa";
 if(!cfg.font) cfg.font="vazirmatn";
 if(cfg.firstDay===undefined) cfg.firstDay=0;
 if(!Array.isArray(cfg.weekends)) cfg.weekends=[6];
-if(cfg.autoLoc===undefined) cfg.autoLoc=true;
+if(cfg.autoLoc===undefined) cfg.autoLoc=false;
 if(cfg.autoSyncCalLang===undefined) cfg.autoSyncCalLang=true;
 if(cfg.calType==="gregorian"){ vy=now.getFullYear(); vm=now.getMonth()+1; }
 else if(cfg.calType==="hijri"){ const hNow=g2h(now.getFullYear(),now.getMonth()+1,now.getDate()); vy=hNow.hy; vm=hNow.hm; }
@@ -2803,6 +2802,24 @@ async function searchCityOnline(){
 // ====== AUTOMATIC LOCATION DETECTION (GPS + REVERSE GEOCODING + IP FALLBACK) ======
 async function detectUserLocation(manualPrompt = false) {
   if (!manualPrompt && !cfg.autoLoc) return;
+  if (window.AndroidBridge && typeof window.AndroidBridge.hasLocationPermission === "function") {
+    if (!window.AndroidBridge.hasLocationPermission()) {
+      if (manualPrompt) {
+        try { if (window.AndroidBridge.requestLocationPermission) window.AndroidBridge.requestLocationPermission(); } catch (e) {}
+        try {
+          if (window.AndroidBridge.showNativeToast) {
+            window.AndroidBridge.showNativeToast(tr("برای تشخیص مکان شما، ابتدا مجوز موقعیت مکانی را تأیید کنید", "بۆ دیاریکردنی شوێنەکەت، سەرەتا مۆڵەتی شوێن بدە", "Please grant Location permission first"));
+          }
+        } catch (e) {}
+      }
+      return;
+    }
+  } else if (!manualPrompt && navigator.permissions && navigator.permissions.query) {
+    try {
+      const pSt = await navigator.permissions.query({ name: "geolocation" });
+      if (pSt.state !== "granted") return;
+    } catch (e) { return; }
+  }
   const btn = document.getElementById("autoLocBtn");
   if (btn && manualPrompt) {
     btn.textContent = "⏳ مکان‌یابی...";
@@ -3923,6 +3940,7 @@ function applyCfg(){
   if (colWrap) colWrap.style.opacity = useSysSync ? "0.48" : "1";
 
   if(window.AndroidBridge && window.AndroidBridge.syncWidgetTheme){ try{ window.AndroidBridge.syncWidgetTheme(effectiveUi, useSysSync ? "auto" : (cfg.theme||"auto"), effectivePri, cfg.calType||"jalali", cfg.lang||"fa"); }catch(e){} }
+  if (typeof syncWidgetCalendarToNative === "function") setTimeout(syncWidgetCalendarToNative, 120);
   document.getElementById("weatherCard").style.display=cfg.showW?"block":"none";
   document.getElementById("setTheme").value=cfg.theme;
   if(document.getElementById("setLang")) document.getElementById("setLang").value=cfg.lang||"fa";
@@ -4091,31 +4109,67 @@ function wCodeInfo(code, isDay = true){
   if(code<=77) return ["❄️", tr(isDay ? "برفی (روز)" : "برفی (شب)", "بەفراوی", isDay ? "Snowy (Day)" : "Snowy (Night)")];
   return ["⛈️", tr("رگبار و رعدوبرق", "ڕەهێڵە و هەورەبرووسکە", "Thunderstorm & Showers")];
 }
-let wNotifEnabled=JSON.parse(localStorage.getItem("w_notif_v10")||"true");
+let wNotifEnabled=JSON.parse(localStorage.getItem("w_notif_v11")||"false");
+function hasNotifPermissionGranted(){
+  if(window.AndroidBridge && typeof window.AndroidBridge.hasNotificationPermission==="function"){
+    try{ return !!window.AndroidBridge.hasNotificationPermission(); }catch(e){}
+  }
+  if("Notification" in window) return Notification.permission==="granted";
+  return false;
+}
+if(wNotifEnabled && !hasNotifPermissionGranted()){
+  wNotifEnabled=false;
+  localStorage.setItem("w_notif_v11","false");
+}
 function updateNotifBtnUI(){
   const btn=document.getElementById("wNotifBtn");
   if(!btn)return;
-  btn.textContent=wNotifEnabled?tr("🔔 هشدار","🔔 ئاگاداری","🔔 Alerts"):tr("🔕 هشدار","🔕 ئاگاداری","🔕 Alerts");
-  btn.style.background=wNotifEnabled?"var(--pri)":"var(--card)";
-  btn.style.color=wNotifEnabled?"var(--onpri)":"var(--pri)";
+  const active = !!(wNotifEnabled && hasNotifPermissionGranted());
+  btn.textContent=active?tr("🔔 هشدار","🔔 ئاگاداری","🔔 Alerts"):tr("🔕 هشدار","🔕 ئاگاداری","🔕 Alerts");
+  btn.style.background=active?"var(--pri)":"var(--card)";
+  btn.style.color=active?"var(--onpri)":"var(--pri)";
 }
 async function toggleWeatherNotif(){
   if(!wNotifEnabled){
-    if("Notification" in window && Notification.permission!=="granted"){
-      await Notification.requestPermission().catch(()=>null);
+    if(window.AndroidBridge && typeof window.AndroidBridge.hasNotificationPermission==="function"){
+      if(!window.AndroidBridge.hasNotificationPermission()){
+        try{ if(window.AndroidBridge.requestNotificationPermission) window.AndroidBridge.requestNotificationPermission(); }catch(e){}
+        try{
+          if(window.AndroidBridge.showNativeToast){
+            window.AndroidBridge.showNativeToast(tr("برای فعال‌سازی هشدار جوی، ابتدا مجوز اعلان را تأیید کنید", "بۆ چالاککردنی ئاگاداری کەشوهەوا، مۆڵەتی ئاگادارکردنەوە بدە", "Please grant Notification permission first"));
+          }
+        }catch(e){}
+        updateNotifBtnUI();
+        return;
+      }
+    } else if("Notification" in window){
+      let perm = Notification.permission;
+      if(perm==="default"){
+        perm = await Notification.requestPermission().catch(()=>"denied");
+      }
+      if(perm!=="granted"){
+        alert(tr("برای فعال‌سازی هشدار تغییر وضعیت جوی، ابتدا مجوز اعلان (Notifications) را در مرورگر مجاز کنید.", "بۆ چالاککردنی ئاگاداری کەشوهەوا، مۆڵەتی ئاگادارکردنەوە لە وێبگەڕەکەت چالاک بکە.", "Please allow Notification permission in your browser to enable weather alerts."));
+        wNotifEnabled=false;
+        localStorage.setItem("w_notif_v11","false");
+        updateNotifBtnUI();
+        return;
+      }
     }
     wNotifEnabled=true;
-    localStorage.setItem("w_notif_v10","true");
+    localStorage.setItem("w_notif_v11","true");
     updateNotifBtnUI();
-    sendWeatherAlert("هشدار هوشمند وضعیت جوی فعال شد","در صورت تغییر وضعیت هوا یا ناسالم شدن شاخص آلودگی، به شما اطلاع داده می‌شود.");
+    sendWeatherAlert(
+      tr("هشدار هوشمند وضعیت جوی فعال شد","ئاگاداری زیرەکی کەشوهەوا چالاک کرا","Smart Weather Alerts Enabled"),
+      tr("در صورت تغییر وضعیت هوا یا ناسالم شدن شاخص آلودگی، به شما اطلاع داده می‌شود.","لە کاتی گۆڕانی کەشوهەوا یان پیسبوونی هەوادا ئاگادارت دەکەینەوە.","You will be notified of weather or air quality changes.")
+    );
   }else{
     wNotifEnabled=false;
-    localStorage.setItem("w_notif_v10","false");
+    localStorage.setItem("w_notif_v11","false");
     updateNotifBtnUI();
   }
 }
 function sendWeatherAlert(title,body){
-  if(!wNotifEnabled)return;
+  if(!wNotifEnabled || !hasNotifPermissionGranted()) return;
   playAlarmTone();
   if(window.AndroidBridge && window.AndroidBridge.showAlertNotification){
     try{window.AndroidBridge.showAlertNotification(title,body);}catch(e){}
@@ -5533,7 +5587,7 @@ function resetDefaultSettings() {
     systemSync: false,
     firstDay: 0,
     weekends: [6],
-    autoLoc: true,
+    autoLoc: false,
     autoSyncCalLang: true
   };
   localStorage.setItem("cal_cfg_v4", JSON.stringify(cfg));
@@ -7785,6 +7839,71 @@ document.addEventListener("click", (e) => {
     }
   }
 }, true);
+
+
+// =========================================================================
+// WIDGET CALENDAR DATA SYNC (Holidays, Events, Notes, Weekends, FirstDay)
+// =========================================================================
+let __lastWidgetCalSig = "";
+function syncWidgetCalendarToNative() {
+  if (!window.AndroidBridge || typeof window.AndroidBridge.syncWidgetCalendarData !== "function") return;
+  try {
+    const isGreg = (cfg.calType === "gregorian" || cfg.lang === "en");
+    const holidays = [];
+    const events = [];
+    const noteDays = [];
+    const yearsToSync = isGreg ? [tod.gy - 1, tod.gy, tod.gy + 1] : [tod.jy - 1, tod.jy, tod.jy + 1];
+
+    if (isGreg) {
+      // Sync current year's Gregorian months mapped from Jalali getEv + notes
+      const y = tod.gy;
+      for (let gm = 1; gm <= 12; gm++) {
+        const dim = new Date(y, gm, 0).getDate();
+        for (let gd = 1; gd <= dim; gd++) {
+          const j = toJ(y, gm, gd);
+          const evs = getEv(j.jy, j.jm, j.jd) || [];
+          const hasHol = evs.some(e => !!e[1]);
+          const hasEv = evs.length > 0;
+          const dk = dayKey(j.jy, j.jm, j.jd);
+          const hasNote = Array.isArray(notes[dk]) && notes[dk].length > 0;
+          const key = `${y}-${gm}-${gd}`;
+          if (hasHol) holidays.push(key);
+          if (hasEv) events.push(key);
+          if (hasNote) noteDays.push(key);
+        }
+      }
+    } else {
+      const y = tod.jy;
+      for (let jm = 1; jm <= 12; jm++) {
+        const dim = mLen(y, jm);
+        for (let jd = 1; jd <= dim; jd++) {
+          const evs = getEv(y, jm, jd) || [];
+          const hasHol = evs.some(e => !!e[1]);
+          const hasEv = evs.length > 0;
+          const dk = dayKey(y, jm, jd);
+          const hasNote = Array.isArray(notes[dk]) && notes[dk].length > 0;
+          const key = `${y}-${jm}-${jd}`;
+          if (hasHol) holidays.push(key);
+          if (hasEv) events.push(key);
+          if (hasNote) noteDays.push(key);
+        }
+      }
+    }
+
+    const payload = JSON.stringify({
+      cal: isGreg ? "gregorian" : (cfg.calType || "jalali"),
+      firstDay: Number(cfg.firstDay || 0),
+      weekends: Array.isArray(cfg.weekends) ? cfg.weekends : [6],
+      holidays,
+      events,
+      notes: noteDays
+    });
+    if (payload !== __lastWidgetCalSig) {
+      __lastWidgetCalSig = payload;
+      window.AndroidBridge.syncWidgetCalendarData(payload);
+    }
+  } catch (e) {}
+}
 
 </script>
 

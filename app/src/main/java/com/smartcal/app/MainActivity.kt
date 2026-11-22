@@ -683,6 +683,51 @@ class MainActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
+        fun hasNotificationPermission(): Boolean {
+            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+            } else {
+                true
+            }
+        }
+
+        @JavascriptInterface
+        fun requestNotificationPermission() {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                runOnUiThread {
+                    ActivityCompat.requestPermissions(
+                        this@MainActivity,
+                        arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                        1011
+                    )
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun hasLocationPermission(): Boolean {
+            val fine = ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+            val coarse = ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+            return fine || coarse
+        }
+
+        @JavascriptInterface
+        fun requestLocationPermission() {
+            runOnUiThread {
+                ActivityCompat.requestPermissions(
+                    this@MainActivity,
+                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
+                    1012
+                )
+            }
+        }
+
+        @JavascriptInterface
+        fun syncWidgetCalendarData(json: String) {
+            SmartCalMonthWidgetProvider.saveCalendarSync(this@MainActivity, json)
+        }
+
+        @JavascriptInterface
         fun syncWidgetTheme(uiStyle: String, themeMode: String, accentHex: String, calType: String, lang: String) {
             SmartCalWidgetProvider.saveTheme(this@MainActivity, uiStyle, themeMode, accentHex, calType, lang)
         }

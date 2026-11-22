@@ -14,6 +14,7 @@ import android.graphics.Rect
 import android.graphics.Typeface
 import android.os.Bundle
 import android.widget.RemoteViews
+import org.json.JSONObject
 import java.util.Calendar
 
 class SmartCalMonthWidgetProvider : AppWidgetProvider() {
@@ -60,10 +61,18 @@ class SmartCalMonthWidgetProvider : AppWidgetProvider() {
         private const val ACTION_NEXT_MONTH = "com.smartcal.app.WIDGET_NEXT_MONTH"
         private const val ACTION_RESET_TODAY = "com.smartcal.app.WIDGET_RESET_TODAY"
         private const val KEY_MONTH_OFFSET = "w_month_offset"
+        private const val KEY_CAL_SYNC_JSON = "w_cal_sync_json"
 
-        private val FA_WD_SHORT = arrayOf("ش", "ی", "د", "س", "چ", "پ", "ج")
-        private val KU_WD_SHORT = arrayOf("ش", "ی", "د", "س", "چ", "پ", "هـ")
-        private val EN_WD_SHORT = arrayOf("S", "M", "T", "W", "T", "F", "S")
+        // Base weekday labels starting from Saturday (0=Sat, 1=Sun, 2=Mon, 3=Tue, 4=Wed, 5=Thu, 6=Fri)
+        private val FA_WD_SAT = arrayOf("ش", "ی", "د", "س", "چ", "پ", "ج")
+        private val KU_WD_SAT = arrayOf("ش", "ی", "د", "س", "چ", "پ", "هـ")
+        private val EN_WD_SAT = arrayOf("S", "S", "M", "T", "W", "T", "F")
+
+        fun saveCalendarSync(context: Context, json: String) {
+            context.getSharedPreferences(SmartCalWidgetProvider.PREFS, Context.MODE_PRIVATE)
+                .edit().putString(KEY_CAL_SYNC_JSON, json).apply()
+            updateAllWidgets(context)
+        }
 
         fun resetAndUpdateAll(context: Context) {
             context.getSharedPreferences(SmartCalWidgetProvider.PREFS, Context.MODE_PRIVATE)
@@ -82,6 +91,42 @@ class SmartCalMonthWidgetProvider : AppWidgetProvider() {
             } catch (_: Exception) {}
         }
 
+        private data class SyncedCalData(
+            val firstDay: Int,
+            val weekends: Set<Int>,
+            val holidays: Set<String>,
+            val events: Set<String>,
+            val notes: Set<String>
+        )
+
+        private fun loadSyncedData(context: Context, isGreg: Boolean): SyncedCalData {
+            val defaultFirst = if (isGreg) 1 else 0 // 1=Sun for Greg, 0=Sat for Jalali/Kurdish
+            val defaultWknds = if (isGreg) setOf(1) else setOf(6) // 1=Sun, 6=Fri
+            val raw = context.getSharedPreferences(SmartCalWidgetProvider.PREFS, Context.MODE_PRIVATE)
+                .getString(KEY_CAL_SYNC_JSON, null) ?: return SyncedCalData(defaultFirst, defaultWknds, emptySet(), emptySet(), emptySet())
+
+            return try {
+                val obj = JSONObject(raw)
+                val fd = obj.optInt("firstDay", defaultFirst).coerceIn(0, 6)
+                val wkSet = mutableSetOf<Int>()
+                val wkArr = obj.optJSONArray("weekends")
+                if (wkArr != null && wkArr.length() > 0) {
+                    for (i in 0 until wkArr.length()) wkSet.add(wkArr.optInt(i))
+                } else {
+                    wkSet.addAll(defaultWknds)
+                }
+                fun toSet(key: String): Set<String> {
+                    val out = HashSet<String>()
+                    val arr = obj.optJSONArray(key) ?: return out
+                    for (i in 0 until arr.length()) out.add(arr.optString(i))
+                    return out
+                }
+                SyncedCalData(fd, wkSet, toSet("holidays"), toSet("events"), toSet("notes"))
+            } catch (_: Exception) {
+                SyncedCalData(defaultFirst, defaultWknds, emptySet(), emptySet(), emptySet())
+            }
+        }
+
         private fun renderMonthGridBitmap(
             palette: SmartCalWidgetProvider.Companion.ThemePalette,
             headers: Array<String>,
@@ -89,33 +134,39 @@ class SmartCalMonthWidgetProvider : AppWidgetProvider() {
             startCol: Int,
             daysInMonth: Int,
             todayDay: Int,
-            weekendCol: Int,
-            useFaDigits: Boolean
+            weekendCols: Set<Int>,
+            holidayDays: Set<Int>,
+            eventDays: Set<Int>,
+            noteDays: Set<Int>,
+            useFaDigits: Boolean,
+            targetW: Int,
+            targetH: Int
         ): Bitmap {
-            val w = 980
-            val h = 640
+            val w = targetW.coerceIn(720, 1200)
+            val h = targetH.coerceIn(420, 960)
             val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
             val canvas = Canvas(bmp)
 
             val cols = 7
             val colW = w.toFloat() / cols
-            val headerH = 74f
             val totalCells = startCol + daysInMonth
             val rows = if (totalCells > 35) 6 else 5
-            val rowH = (h - headerH - 12f) / rows
+            val headerH = (h * 0.145f).coerceIn(58f, 92f)
+            val rowH = (h - headerH - 8f) / rows
+            val cellMin = minOf(colW, rowH)
 
             val headPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                textSize = 34f
+                textSize = (cellMin * 0.44f).coerceIn(32f, 52f)
                 typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
                 textAlign = Paint.Align.CENTER
             }
             val dayPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                textSize = if (rows == 6) 38f else 42f
-                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
+                textSize = (cellMin * 0.56f).coerceIn(40f, 66f)
+                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
                 textAlign = Paint.Align.CENTER
             }
             val todayTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                textSize = if (rows == 6) 38f else 42f
+                textSize = (cellMin * 0.56f).coerceIn(40f, 66f)
                 typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
                 textAlign = Paint.Align.CENTER
                 color = Color.WHITE
@@ -124,44 +175,75 @@ class SmartCalMonthWidgetProvider : AppWidgetProvider() {
                 style = Paint.Style.FILL
                 color = palette.accent
             }
+            val eventDotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.FILL
+                color = palette.accent
+            }
+            val noteDotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.FILL
+                color = Color.parseColor("#10B981")
+            }
             val bounds = Rect()
 
             // Draw weekday headers
             for (c in 0 until cols) {
                 val drawCol = if (isRtl) (cols - 1 - c) else c
                 val cx = drawCol * colW + colW / 2f
-                headPaint.color = if (c == weekendCol) palette.weekend else palette.txtSec
+                headPaint.color = if (weekendCols.contains(c)) palette.weekend else palette.txtSec
                 val label = headers[c]
                 headPaint.getTextBounds(label, 0, label.length, bounds)
                 canvas.drawText(label, cx, headerH / 2f - bounds.exactCenterY(), headPaint)
             }
 
-            // Draw subtle divider line
+            // Subtle divider
             val divPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = palette.stroke
-                strokeWidth = 2f
+                strokeWidth = 2.2f
             }
-            canvas.drawLine(18f, headerH, w - 18f, headerH, divPaint)
+            canvas.drawLine(12f, headerH, w - 12f, headerH, divPaint)
 
-            // Draw month days
-            val circleRadius = minOf(colW, rowH) * 0.39f
+            // Draw month days with crisp typography, holiday red highlight, and event/note dots
+            val circleRadius = (cellMin * 0.43f)
+            val dotRadius = (cellMin * 0.068f).coerceIn(4.5f, 8.5f)
             for (d in 1..daysInMonth) {
                 val idx = startCol + (d - 1)
                 val r = idx / cols
                 val c = idx % cols
                 val drawCol = if (isRtl) (cols - 1 - c) else c
                 val cx = drawCol * colW + colW / 2f
-                val cy = headerH + 6f + r * rowH + rowH / 2f
+                val cy = headerH + 4f + r * rowH + rowH / 2f
                 val numStr = if (useFaDigits) SmartCalWidgetProvider.toFaDigits(d) else d.toString()
 
-                if (d == todayDay) {
+                val isToday = (d == todayDay)
+                val isHoliday = holidayDays.contains(d) || weekendCols.contains(c)
+                val hasEvent = eventDays.contains(d)
+                val hasNote = noteDays.contains(d)
+
+                if (isToday) {
                     canvas.drawCircle(cx, cy, circleRadius, todayCirclePaint)
                     todayTextPaint.getTextBounds(numStr, 0, numStr.length, bounds)
-                    canvas.drawText(numStr, cx, cy - bounds.exactCenterY(), todayTextPaint)
+                    val textOffsetY = if (hasEvent || hasNote) -dotRadius * 0.6f else 0f
+                    canvas.drawText(numStr, cx, cy + textOffsetY - bounds.exactCenterY(), todayTextPaint)
+                    if (hasEvent || hasNote) {
+                        val whiteDot = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
+                        canvas.drawCircle(cx, cy + circleRadius * 0.62f, dotRadius * 0.85f, whiteDot)
+                    }
                 } else {
-                    dayPaint.color = if (c == weekendCol) palette.weekend else palette.txtPri
+                    dayPaint.color = if (isHoliday) palette.weekend else palette.txtPri
                     dayPaint.getTextBounds(numStr, 0, numStr.length, bounds)
-                    canvas.drawText(numStr, cx, cy - bounds.exactCenterY(), dayPaint)
+                    val textOffsetY = if (hasEvent || hasNote) -dotRadius * 0.7f else 0f
+                    canvas.drawText(numStr, cx, cy + textOffsetY - bounds.exactCenterY(), dayPaint)
+
+                    val dotY = cy + (cellMin * 0.34f)
+                    if (hasEvent && hasNote) {
+                        canvas.drawCircle(cx - dotRadius * 1.4f, dotY, dotRadius, eventDotPaint)
+                        canvas.drawCircle(cx + dotRadius * 1.4f, dotY, dotRadius, noteDotPaint)
+                    } else if (hasEvent) {
+                        eventDotPaint.color = if (isHoliday) palette.weekend else palette.accent
+                        canvas.drawCircle(cx, dotY, dotRadius, eventDotPaint)
+                    } else if (hasNote) {
+                        canvas.drawCircle(cx, dotY, dotRadius, noteDotPaint)
+                    }
                 }
             }
             return bmp
@@ -190,55 +272,83 @@ class SmartCalMonthWidgetProvider : AppWidgetProvider() {
 
             val isGreg = (calType == "gregorian" || lang == "en")
             val isKu = (!isGreg && (calType == "kurdish" || lang == "ku"))
+            val synced = loadSyncedData(context, isGreg)
+
+            val firstDay = synced.firstDay // 0=Sat, 1=Sun, 2=Mon, ...
+            val baseHeaders = when {
+                isGreg -> EN_WD_SAT
+                isKu -> KU_WD_SAT
+                else -> FA_WD_SAT
+            }
+            val headers = Array(7) { c -> baseHeaders[(firstDay + c) % 7] }
+            val weekendCols = mutableSetOf<Int>()
+            for (c in 0 until 7) {
+                val satIdx = (firstDay + c) % 7
+                if (synced.weekends.contains(satIdx)) weekendCols.add(c)
+            }
 
             val titleStr: String
             val startCol: Int
             val daysInMonth: Int
             val todayDay: Int
-            val headers: Array<String>
             val isRtl: Boolean
-            val weekendCol: Int
             val useFaDigits: Boolean
+            val targetYear: Int
+            val targetMonth: Int
 
             if (isGreg) {
                 val targetCal = Calendar.getInstance().apply {
                     set(curGy, curGm - 1, 1)
                     add(Calendar.MONTH, monthOffset)
                 }
-                val ty = targetCal.get(Calendar.YEAR)
-                val tm = targetCal.get(Calendar.MONTH) + 1
-                titleStr = "${SmartCalWidgetProvider.EN_MONTHS_FULL[(tm - 1).coerceIn(0, 11)]} $ty"
-                startCol = (targetCal.get(Calendar.DAY_OF_WEEK) - 1).coerceIn(0, 6) // Sunday = 0
-                daysInMonth = JalaliHelper.gregorianMonthLength(ty, tm)
-                todayDay = if (ty == curGy && tm == curGm) curGd else -1
-                headers = EN_WD_SHORT
+                targetYear = targetCal.get(Calendar.YEAR)
+                targetMonth = targetCal.get(Calendar.MONTH) + 1
+                titleStr = "${SmartCalWidgetProvider.EN_MONTHS_FULL[(targetMonth - 1).coerceIn(0, 11)]} $targetYear"
+                val dow = targetCal.get(Calendar.DAY_OF_WEEK) // Sun=1..Sat=7
+                val satIdx = if (dow == Calendar.SATURDAY) 0 else dow
+                startCol = ((satIdx - firstDay) % 7 + 7) % 7
+                daysInMonth = JalaliHelper.gregorianMonthLength(targetYear, targetMonth)
+                todayDay = if (targetYear == curGy && targetMonth == curGm) curGd else -1
                 isRtl = false
-                weekendCol = 0 // Sunday
                 useFaDigits = false
             } else {
-                // Jalali / Kurdish month offset calculation
                 val totalMonths = (curJ.year * 12) + (curJ.month - 1) + monthOffset
-                val ty = totalMonths / 12
-                val tm = (totalMonths % 12) + 1
-                val firstG = JalaliHelper.jalaliToGregorian(ty, tm, 1)
+                targetYear = totalMonths / 12
+                targetMonth = (totalMonths % 12) + 1
+                val firstG = JalaliHelper.jalaliToGregorian(targetYear, targetMonth, 1)
                 val firstCal = Calendar.getInstance().apply { set(firstG.year, firstG.month - 1, firstG.day) }
-                // Calendar.SATURDAY == 7 -> 0, SUNDAY == 1 -> 1, ..., FRIDAY == 6 -> 6
                 val dow = firstCal.get(Calendar.DAY_OF_WEEK)
-                startCol = if (dow == Calendar.SATURDAY) 0 else dow
-                daysInMonth = JalaliHelper.jalaliMonthLength(ty, tm)
-                todayDay = if (ty == curJ.year && tm == curJ.month) curJ.day else -1
-                if (isKu) {
-                    val kuY = ty + 1321
-                    titleStr = "${SmartCalWidgetProvider.KU_MONTHS[(tm - 1).coerceIn(0, 11)]} ${SmartCalWidgetProvider.toFaDigits(kuY)}"
-                    headers = KU_WD_SHORT
+                val satIdx = if (dow == Calendar.SATURDAY) 0 else dow
+                startCol = ((satIdx - firstDay) % 7 + 7) % 7
+                daysInMonth = JalaliHelper.jalaliMonthLength(targetYear, targetMonth)
+                todayDay = if (targetYear == curJ.year && targetMonth == curJ.month) curJ.day else -1
+                titleStr = if (isKu) {
+                    val kuY = targetYear + 1321
+                    "${SmartCalWidgetProvider.KU_MONTHS[(targetMonth - 1).coerceIn(0, 11)]} ${SmartCalWidgetProvider.toFaDigits(kuY)}"
                 } else {
-                    titleStr = "${SmartCalWidgetProvider.FA_MONTHS[(tm - 1).coerceIn(0, 11)]} ${SmartCalWidgetProvider.toFaDigits(ty)}"
-                    headers = FA_WD_SHORT
+                    "${SmartCalWidgetProvider.FA_MONTHS[(targetMonth - 1).coerceIn(0, 11)]} ${SmartCalWidgetProvider.toFaDigits(targetYear)}"
                 }
                 isRtl = true
-                weekendCol = 6 // Friday
                 useFaDigits = true
             }
+
+            val holidayDays = mutableSetOf<Int>()
+            val eventDays = mutableSetOf<Int>()
+            val noteDays = mutableSetOf<Int>()
+            for (d in 1..daysInMonth) {
+                val key = "$targetYear-$targetMonth-$d"
+                if (synced.holidays.contains(key)) holidayDays.add(d)
+                if (synced.events.contains(key)) eventDays.add(d)
+                if (synced.notes.contains(key)) noteDays.add(d)
+            }
+
+            // Compute exact canvas proportions from actual widget size so numbers fill edge-to-edge crisply
+            val opts = mgr.getAppWidgetOptions(appWidgetId)
+            val minW = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 280).coerceAtLeast(180)
+            val minH = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 200).coerceAtLeast(130)
+            val gridHdp = (minH - 46).coerceAtLeast(95)
+            val canvasW = 980
+            val canvasH = ((canvasW.toFloat() * gridHdp.toFloat()) / minW.toFloat()).toInt().coerceIn(420, 960)
 
             val views = RemoteViews(context.packageName, R.layout.widget_smartcal_month)
             views.setImageViewBitmap(R.id.monthWidgetBg, SmartCalWidgetProvider.renderThemeCardBitmap(palette, 840, 680))
@@ -248,11 +358,12 @@ class SmartCalMonthWidgetProvider : AppWidgetProvider() {
             views.setTextColor(R.id.monthNextBtn, palette.txtSec)
 
             val gridBmp = renderMonthGridBitmap(
-                palette, headers, isRtl, startCol, daysInMonth, todayDay, weekendCol, useFaDigits
+                palette, headers, isRtl, startCol, daysInMonth, todayDay,
+                weekendCols, holidayDays, eventDays, noteDays, useFaDigits,
+                canvasW, canvasH
             )
             views.setImageViewBitmap(R.id.monthGridImage, gridBmp)
 
-            // Wire prev/next/today buttons (RTL swaps visual left/right direction naturally)
             if (isRtl) {
                 views.setOnClickPendingIntent(R.id.monthPrevBtn, makeActionPi(context, ACTION_NEXT_MONTH, 6471))
                 views.setOnClickPendingIntent(R.id.monthNextBtn, makeActionPi(context, ACTION_PREV_MONTH, 6472))
