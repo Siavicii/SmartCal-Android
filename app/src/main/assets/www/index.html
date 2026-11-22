@@ -1591,6 +1591,35 @@ body.app-booting .app {
   opacity: 1;
 }
 
+
+/* =========================================================================
+   INSTANT ZERO-LAG TAB SWITCHING & HORIZONTAL SWIPE TRANSITIONS
+   ========================================================================= */
+@keyframes tabSlideInFromLeft {
+  from { opacity: 0.35; transform: translate3d(-24px, 0, 0); }
+  to   { opacity: 1;    transform: translate3d(0, 0, 0); }
+}
+@keyframes tabSlideInFromRight {
+  from { opacity: 0.35; transform: translate3d(24px, 0, 0); }
+  to   { opacity: 1;    transform: translate3d(0, 0, 0); }
+}
+.view.active {
+  animation: viewSmoothIn 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity;
+  contain: layout style;
+}
+.view.active.tab-dir-left {
+  animation: tabSlideInFromLeft 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.view.active.tab-dir-right {
+  animation: tabSlideInFromRight 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.nbtn {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -2307,7 +2336,7 @@ setTimeout(function(){ if (window.__dismissSmartSplash) window.__dismissSmartSpl
 <script>
 // Self-healing cache & Service Worker updater for v19
 (function(){
-  const VER = "v67.3";
+  const VER = "v67.4";
   if (localStorage.getItem("smartcal_sw_ver") !== VER) {
     localStorage.setItem("smartcal_sw_ver", VER);
     if ("caches" in window) {
@@ -3151,21 +3180,112 @@ function setCalMode(m){
   if (typeof animateCalSurface === "function") animateCalSurface("cal-anim-zoom");
 }
 
-function switchTab(t){
+const TAB_ORDER = ["cal", "mkt", "fal", "notes"];
+let activeTabId = "cal";
+let lastMktTabFetchMs = 0;
+
+function switchTab(t, swipeDir = 0){
+  if (!TAB_ORDER.includes(t)) return;
   const targetView = document.getElementById("view-"+t);
   if (targetView && targetView.classList.contains("active")) return;
-  document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
-  document.querySelectorAll(".nbtn").forEach(b=>b.classList.remove("act"));
+
+  const prevIdx = TAB_ORDER.indexOf(activeTabId);
+  const nextIdx = TAB_ORDER.indexOf(t);
+  const isRtl = document.documentElement.dir !== "ltr";
+  let dirClass = "";
+  if (swipeDir !== 0) {
+    dirClass = swipeDir > 0 ? "tab-dir-left" : "tab-dir-right";
+  } else if (prevIdx !== -1 && nextIdx !== -1 && prevIdx !== nextIdx) {
+    const movingForward = nextIdx > prevIdx;
+    dirClass = isRtl
+      ? (movingForward ? "tab-dir-left" : "tab-dir-right")
+      : (movingForward ? "tab-dir-right" : "tab-dir-left");
+  }
+
+  activeTabId = t;
+  document.querySelectorAll(".view").forEach(v => {
+    v.classList.remove("active", "tab-dir-left", "tab-dir-right");
+  });
+  document.querySelectorAll(".nbtn").forEach(b => b.classList.remove("act"));
+
   if (targetView) {
-    void targetView.offsetWidth;
+    if (dirClass) targetView.classList.add(dirClass);
     targetView.classList.add("active");
   }
   const navBtn = document.getElementById("nav-"+t);
   if (navBtn) navBtn.classList.add("act");
-  if(t==="notes") renderAllNotes();
-  if(t==="mkt") fetchMarket(true);
-  if(t==="fal") { renderFal(); fetchAiDailyFal(false); }
+
+  // Defer heavier DOM/network work to the next animation frame so tab transition is 100% instant
+  requestAnimationFrame(() => {
+    if (t === "notes") {
+      try { renderAllNotes(); } catch (e) {}
+    } else if (t === "mkt") {
+      try {
+        const cachedMkt = JSON.parse(localStorage.getItem(PWA_MKT_CACHE_KEY) || "null");
+        if (cachedMkt && !lastMarketPayload) renderMarket(cachedMkt, true);
+      } catch (e) {}
+      if (Date.now() - lastMktTabFetchMs > 25000) {
+        lastMktTabFetchMs = Date.now();
+        setTimeout(() => { try { fetchMarket(false); } catch (e) {} }, 60);
+      }
+    } else if (t === "fal") {
+      try { renderFal(true); } catch (e) {}
+      setTimeout(() => { try { if (typeof fetchAiDailyFal === "function") fetchAiDailyFal(false); } catch (e) {} }, 120);
+    }
+  });
 }
+
+// Global horizontal swipe gesture to switch between the 4 main tabs smoothly
+(function initGlobalTabSwipe(){
+  let sx = 0, sy = 0, st = 0, tracking = false;
+  const isBlockedTarget = (el) => {
+    if (!el || !el.closest) return false;
+    if (document.querySelector(".modal.open") || document.getElementById("smartSelectPicker")?.classList.contains("open")) return true;
+    if (document.getElementById("calCard")?.classList.contains("fullscreen")) return true;
+    if (el.closest("#calScrollArea, .notes-filters, input, textarea, select, [contenteditable]")) return true;
+    return false;
+  };
+
+  document.addEventListener("touchstart", (e) => {
+    if (e.touches.length !== 1 || isBlockedTarget(e.target)) {
+      tracking = false;
+      return;
+    }
+    sx = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
+    st = Date.now();
+    tracking = true;
+  }, { passive: true });
+
+  document.addEventListener("touchend", (e) => {
+    if (!tracking || !e.changedTouches || !e.changedTouches.length) return;
+    tracking = false;
+    const dx = e.changedTouches[0].clientX - sx;
+    const dy = e.changedTouches[0].clientY - sy;
+    const dt = Date.now() - st;
+    // Fast, intentional horizontal swipe (prevents accidental triggers while scrolling vertically)
+    if (dt < 650 && Math.abs(dx) > 58 && Math.abs(dx) > Math.abs(dy) * 1.45) {
+      const curIdx = TAB_ORDER.indexOf(activeTabId);
+      if (curIdx === -1) return;
+      const isRtl = document.documentElement.dir !== "ltr";
+      // In RTL: swipe left (dx < 0) goes to next tab; swipe right (dx > 0) goes to previous tab
+      const step = isRtl ? (dx < 0 ? 1 : -1) : (dx < 0 ? 1 : -1);
+      // Wait: in RTL bottom nav, cal is on the right (index 0), notes is on the left (index 3).
+      // Swiping finger right -> left (dx < 0) pulls the left neighbor (next tab, +1) into view.
+      // Swiping finger left -> right (dx > 0) pulls the right neighbor (prev tab, -1) into view.
+      // In LTR bottom nav, cal is on the left (index 0), notes is on the right (index 3).
+      // Swiping finger right -> left (dx < 0) pulls the right neighbor (next tab, +1) into view.
+      // Wait: in RTL, visual order of grid is Right-to-Left: [notes] [fal] [mkt] [cal]
+      // So to go from cal (right) to mkt (to its left), user drags finger LEFT->RIGHT (dx > 0) or RIGHT->LEFT (dx < 0)?
+      // Natural page-turning: if mkt is to the LEFT of cal, dragging finger from LEFT to RIGHT (dx > 0) pulls the left page in!
+      const delta = isRtl ? (dx > 0 ? 1 : -1) : (dx < 0 ? 1 : -1);
+      const nextIdx = curIdx + delta;
+      if (nextIdx >= 0 && nextIdx < TAB_ORDER.length) {
+        switchTab(TAB_ORDER[nextIdx], dx > 0 ? -1 : 1);
+      }
+    }
+  }, { passive: true });
+})();
 
 
 let currentWeatherCode=null;
