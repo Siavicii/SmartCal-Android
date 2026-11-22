@@ -1253,9 +1253,7 @@ input[type="range"]::-moz-range-thumb {
 #smartSelectPicker .sp-sheet {
   zoom: var(--font-scale, 1);
 }
-.nav {
-  zoom: var(--nav-scale, 1);
-}
+/* .nav zoom removed to keep fixed bottom bar rock-solid in Android WebView */
 /* Prevent top bar & grids from ever breaking layout at larger scales */
 .bar {
   max-width: 100%;
@@ -1618,6 +1616,400 @@ body.app-booting .app {
   touch-action: manipulation;
   user-select: none;
   -webkit-user-select: none;
+}
+
+
+/* =========================================================================
+   DESKTOP & PC PROPORTIONAL TYPOGRAPHY, SPACING & CONTROLS (>= 768px / >= 1100px)
+   ========================================================================= */
+@media (min-width: 768px) {
+  body {
+    font-size: 15px;
+  }
+  .app {
+    max-width: 920px;
+    gap: 16px;
+  }
+
+  /* Top Bar: Comfortable Desktop Pills & Buttons */
+  .bar {
+    gap: 10px;
+  }
+  .pill {
+    height: 40px;
+    padding: 0 15px;
+    font-size: 13.5px;
+    gap: 7px;
+  }
+  .actions {
+    gap: 8px;
+  }
+  .ibtn {
+    height: 40px;
+    padding: 0 14px;
+    border-radius: 13px;
+    font-size: 13px;
+    gap: 6px;
+  }
+  .bar .ibtn svg,
+  .bar .pill svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  /* Install Banner */
+  .install-card {
+    padding: 13px 16px;
+    font-size: 13.5px;
+    border-radius: 18px;
+  }
+  #pwaBannerAction,
+  .install-card .ibtn {
+    height: 36px !important;
+    padding: 0 14px !important;
+    font-size: 13px !important;
+  }
+
+  /* Cards & Weather */
+  .card,
+  .w-card {
+    padding: 20px;
+  }
+  .w-ico-wrap {
+    width: 62px;
+    height: 62px;
+    border-radius: 18px;
+    font-size: 34px;
+  }
+  .w-ico-wrap svg {
+    width: 44px;
+    height: 44px;
+  }
+  #wCity {
+    font-size: 18px !important;
+  }
+  .w-city-row {
+    gap: 8px;
+  }
+  .w-city-btn {
+    padding: 5px 11px;
+    border-radius: 10px;
+    font-size: 12.5px;
+    gap: 5px;
+  }
+  .w-desc {
+    font-size: 14px;
+    margin-top: 4px;
+  }
+  .w-meta {
+    font-size: 12.5px;
+    margin-top: 5px;
+    gap: 10px;
+  }
+  .w-temp {
+    font-size: 36px;
+  }
+  #wHiLo {
+    font-size: 13px !important;
+    margin-top: 4px !important;
+  }
+  #aqiBar {
+    margin-top: 13px !important;
+    padding: 10px 14px !important;
+    font-size: 13.5px !important;
+    border-radius: 14px !important;
+  }
+  .w-days {
+    gap: 10px;
+    padding-top: 14px;
+    margin-top: 14px;
+  }
+  .w-day {
+    padding: 11px 8px;
+    font-size: 13.5px;
+    border-radius: 15px;
+  }
+  .w-day b {
+    font-size: 14px;
+    margin-top: 5px;
+  }
+
+  /* Calendar Card & Grid */
+  .cal-card {
+    padding: 18px 20px;
+  }
+  .seg {
+    padding: 4px;
+    border-radius: 13px;
+  }
+  .seg button {
+    padding: 6px 14px;
+    font-size: 13px;
+  }
+  #cycleCalTypeBtn {
+    height: 36px !important;
+    width: 36px !important;
+  }
+  #cycleCalTypeBtn svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+  #goTodayBtn,
+  #fsBtn {
+    height: 36px !important;
+    padding: 0 13px !important;
+    font-size: 12.5px !important;
+  }
+  .mhead {
+    margin: 10px 0 12px;
+  }
+  #jTit {
+    font-size: 20px !important;
+  }
+  #gTit {
+    font-size: 13px !important;
+    margin-top: 3px !important;
+  }
+  .grid {
+    gap: 7px;
+  }
+  .wd {
+    font-size: 13.5px;
+    padding-bottom: 8px;
+  }
+  .day {
+    min-height: 58px;
+    padding: 6px 4px 10px;
+    border-radius: 14px;
+  }
+  .jn {
+    font-size: 18px;
+  }
+  .gn {
+    font-size: 11.5px;
+    margin-top: 3px;
+  }
+  .dot {
+    width: 5px;
+    height: 5px;
+  }
+
+  /* Selected Day, Notes & Events Cards */
+  #selTit {
+    font-size: 17px !important;
+  }
+  .copy-date-btn {
+    height: 32px;
+    padding: 0 11px;
+    font-size: 12.5px;
+    border-radius: 10px;
+  }
+  .sub-dates {
+    font-size: 13px;
+    gap: 9px;
+    margin-top: 7px;
+  }
+  .tag {
+    padding: 5px 10px;
+    border-radius: 10px;
+  }
+  #sunTimesBox,
+  #yearTahvilBox {
+    padding: 12px 14px !important;
+    font-size: 13.5px;
+  }
+  .ev,
+  .m-ev {
+    font-size: 14px;
+    padding: 9px 4px;
+  }
+  .badge {
+    min-width: 30px;
+    height: 30px;
+    font-size: 13px;
+  }
+  .note-item {
+    font-size: 13.5px;
+    padding: 10px 12px;
+  }
+  .ncard {
+    padding: 14px 16px;
+    gap: 8px;
+  }
+  .ntxt {
+    font-size: 14px !important;
+  }
+  .fchip {
+    padding: 7px 13px;
+    font-size: 12.5px;
+  }
+  .nact {
+    height: 30px;
+    padding: 0 9px;
+    font-size: 12.5px;
+  }
+  .cat-pill {
+    font-size: 11.5px;
+    padding: 3px 9px;
+  }
+
+  /* Markets & Horoscope */
+  .mkt-head b {
+    font-size: 17px !important;
+  }
+  .mkt-row {
+    padding: 13px 15px;
+  }
+  .mkt-name {
+    font-size: 14.5px;
+    gap: 10px;
+  }
+  .mkt-price {
+    font-size: 16px;
+  }
+  .mkt-unit {
+    font-size: 11.5px;
+  }
+
+  /* Inputs, Selects & Modals */
+  select,
+  input,
+  textarea {
+    padding: 11px 12px;
+    font-size: 14px;
+    border-radius: 12px;
+  }
+  .pbtn {
+    padding: 12px;
+    font-size: 14.5px;
+    border-radius: 13px;
+  }
+  .res {
+    font-size: 14.5px;
+    padding: 14px;
+  }
+  .sn-title {
+    font-size: 14px;
+  }
+  .sn-sub {
+    font-size: 12.5px;
+  }
+  .set-item {
+    font-size: 14px;
+    padding: 7px 0;
+  }
+  .st-card b {
+    font-size: 13.5px;
+  }
+  .st-card span {
+    font-size: 11.5px;
+  }
+}
+
+@media (min-width: 1100px) {
+  body {
+    padding-top: 28px;
+    padding-bottom: 40px;
+    padding-inline-start: 136px;
+    padding-inline-end: 36px;
+  }
+  .app {
+    max-width: 1180px;
+    gap: 18px;
+  }
+
+  /* Larger, Crisp Floating Side Rail on PC */
+  .nav,
+  [data-ui="ios26"] .nav,
+  [data-ui="android17"] .nav {
+    right: 22px;
+    width: 98px;
+    max-width: 98px;
+    padding: 14px 10px;
+    border-radius: 28px;
+  }
+  html[dir="ltr"] .nav,
+  html[dir="ltr"] [data-ui="ios26"] .nav,
+  html[dir="ltr"] [data-ui="android17"] .nav {
+    left: 22px;
+    right: auto;
+  }
+  .nbtn {
+    padding: 12px 6px;
+    border-radius: 18px;
+    font-size: 12.5px;
+    gap: 5px;
+  }
+  .nbtn svg {
+    width: 24px;
+    height: 24px;
+  }
+  [data-ui="android17"] .nbtn svg {
+    width: 54px;
+    height: 32px;
+    padding: 4px 15px;
+  }
+
+  /* Spacious Desktop Calendar Cells */
+  #view-cal.active {
+    grid-template-columns: minmax(0, 1.32fr) minmax(0, 0.92fr);
+    gap: 18px;
+  }
+  #calCard .day {
+    min-height: 68px;
+    border-radius: 16px;
+  }
+  #calCard .jn {
+    font-size: 20px;
+  }
+  #calCard .gn {
+    font-size: 12px;
+  }
+  .sheet {
+    max-width: 600px;
+    padding: 22px;
+  }
+  #layoutEditBanner {
+    max-width: 520px;
+    padding: 12px 16px;
+  }
+}
+
+@media (min-width: 1440px) {
+  .app {
+    max-width: 1260px;
+  }
+  #calCard .day {
+    min-height: 74px;
+  }
+  #calCard .jn {
+    font-size: 21px;
+  }
+}
+
+
+/* =========================================================================
+   ANDROID WEBVIEW FIXED BOTTOM NAV LOCK & HORIZONTAL OVERFLOW GUARD
+   ========================================================================= */
+html, body {
+  overflow-x: clip;
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+.app {
+  overflow-x: clip;
+}
+@media (max-width: 1099px) {
+  .nav,
+  [data-ui="ios26"] .nav,
+  [data-ui="android17"] .nav {
+    position: fixed !important;
+    transform: translate3d(0, 0, 0);
+    -webkit-transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    will-change: transform;
+  }
 }
 
 </style>
@@ -2336,7 +2728,7 @@ setTimeout(function(){ if (window.__dismissSmartSplash) window.__dismissSmartSpl
 <script>
 // Self-healing cache & Service Worker updater for v19
 (function(){
-  const VER = "v67.4";
+  const VER = "v67.6";
   if (localStorage.getItem("smartcal_sw_ver") !== VER) {
     localStorage.setItem("smartcal_sw_ver", VER);
     if ("caches" in window) {
@@ -3214,6 +3606,7 @@ function switchTab(t, swipeDir = 0){
   }
   const navBtn = document.getElementById("nav-"+t);
   if (navBtn) navBtn.classList.add("act");
+  try { window.scrollTo(0, 0); } catch (e) {}
 
   // Defer heavier DOM/network work to the next animation frame so tab transition is 100% instant
   requestAnimationFrame(() => {
