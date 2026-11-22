@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """
 SmartCal AI Emergency Holiday Scanner
-Fetches official Iranian news RSS feeds, analyzes confirmed closure announcements
-with Gemini API, and updates holidays.json automatically.
+Fetches official Iranian news RSS feeds, discovers available Gemini models
+automatically via ListModels, analyzes confirmed closure announcements,
+and updates holidays.json.
 """
 import datetime
 import json
 import os
 import re
 import sys
+import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
 
@@ -16,7 +18,7 @@ RSS_FEEDS = [
     ("ایرنا", "https://www.irna.ir/rss"),
     ("ایسنا", "https://www.isna.ir/rss"),
     ("خبرگزاری مهر", "https://www.mehrnews.com/rss"),
-    ("تسنیم", "https://www.tasnimnews.com/fa/rss/feed/0/8/0/%D8%A2%D8%AE%D8%B1%DB%8C%D9%86-%D8%A7%D8%AE%D8%A8%D8%A7%D8%B1"),
+    ("خبرآنلاین", "https://www.khabaronline.ir/rss"),
 ]
 
 KEYWORDS = [
@@ -29,7 +31,7 @@ def div(a, b): return int(a / b)
 def mod(a, b): return a - int(a / b) * b
 
 def jal_cal(jy):
-    br = [-61,9,38,199,426,686,756,818,1111,1181,1210,1635,2060,2097,2192,2262,2324,2394,2456,3178]
+    br = [-61, 9, 38, 199, 426, 686, 756, 818, 1111, 1181, 1210, 1635, 2060, 2097, 2192, 2262, 2324, 2394, 2456, 3178]
     gy = jy + 621
     leap_j = -14
     jp = br[0]
@@ -91,10 +93,34 @@ def fetch_relevant_news():
                     items.append(f"[{source_name}] {text}")
         except Exception as e:
             print(f"Warning: failed to fetch {source_name}: {e}")
-    return items[:30]
+    return items[:25]
+
+def discover_gemini_models(api_key):
+    url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
+    req = urllib.request.Request(url, method="GET")
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+    excluded = ("image", "audio", "tts", "embedding", "vision")
+    candidates = []
+    for m in data.get("models", []):
+        name = m.get("name", "")
+        methods = m.get("supportedGenerationMethods", [])
+        low = name.lower()
+        if "generateContent" in methods and "gemini" in low and not any(x in low for x in excluded):
+            candidates.append(name.replace("models/", ""))
+    # Prioritize fast flash-lite models first, then flash, then others
+    lite_models = [c for c in candidates if "flash-lite" in c.lower()]
+    flash_models = [c for c in candidates if "flash" in c.lower() and c not in lite_models]
+    other_models = [c for c in candidates if c not in lite_models and c not in flash_models]
+    ordered = lite_models + flash_models + other_models
+    print("Available Gemini models:", ", ".join(ordered[:6]))
+    return ordered
 
 def call_gemini(api_key, news_lines, today_jalali, today_greg):
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+    models = discover_gemini_models(api_key)
+    if not models:
+        raise RuntimeError("No generateContent-capable Gemini models found for this API key.")
+
     prompt = f"""
 امروز {today_jalali} شمسی (برابر با {today_greg} میلادی) است.
 تیتر و خلاصه خبرهای زیر از خبرگزاری‌های رسمی ایران استخراج شده است:
@@ -128,13 +154,29 @@ def call_gemini(api_key, news_lines, today_jalali, today_greg):
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {"temperature": 0.1, "responseMimeType": "application/json"}
     }).encode("utf-8")
-    req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        res = json.loads(resp.read().decode("utf-8"))
-    raw_text = res["candidates"][0]["content"]["parts"][0]["text"].strip()
-    raw_text = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw_text)
-    parsed = json.loads(raw_text)
-    return parsed if isinstance(parsed, list) else []
+
+    last_err = None
+    for model in models[:5]:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
+        try:
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                res = json.loads(resp.read().decode("utf-8"))
+            print(f"Using Gemini model: {model}")
+            raw_text = res["candidates"][0]["content"]["parts"][0]["text"].strip()
+            raw_text = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw_text)
+            parsed = json.loads(raw_text)
+            return parsed if isinstance(parsed, list) else []
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8", errors="ignore")[:200]
+            last_err = f"{model} -> HTTP {e.code}: {body}"
+            print(f"Model {model} failed: HTTP {e.code}, trying next...")
+            continue
+        except Exception as e:
+            last_err = f"{model} -> {e}"
+            print(f"Model {model} error: {e}, trying next...")
+            continue
+    raise RuntimeError(f"Failed on discovered models. Last: {last_err}")
 
 def main():
     api_key = os.environ.get("GEMINI_API_KEY", "").strip()
