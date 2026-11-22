@@ -1,12 +1,10 @@
-name: Build Android APK
+name: Build SmartCal Release APK
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches:
+      - main
   workflow_dispatch:
-
-permissions:
-  contents: write
 
 jobs:
   build:
@@ -16,44 +14,49 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Fonts & Pillow and Generate 367 Dynamic Icons
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y fonts-noto-core libraqm-dev curl
-          curl -sL https://github.com/rastikerdar/vazirmatn/raw/master/fonts/ttf/Vazirmatn-Black.ttf -o Vazirmatn-Black.ttf
-          curl -sL https://github.com/rastikerdar/vazirmatn/raw/master/fonts/ttf/Vazirmatn-Bold.ttf -o Vazirmatn-Bold.ttf
-          curl -sL https://github.com/rastikerdar/vazirmatn/raw/master/fonts/ttf/Vazirmatn-SemiBold.ttf -o Vazirmatn-SemiBold.ttf
-          pip install pillow
-          python3 generate_icons.py
-
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          distribution: temurin
+          java-version: "17"
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+      - name: Set up Python & Pillow for dynamic icons
+        if: hashFiles('generate_icons.py') != ''
+        uses: actions/setup-python@v5
         with:
-          gradle-version: '8.7'
+          python-version: "3.11"
 
-      - name: Build Debug APK
-        run: gradle assembleDebug
-
-      - name: Extract App Version
+      - name: Generate dynamic icons
+        if: hashFiles('generate_icons.py') != ''
         run: |
-          VER=$(grep -oP 'versionName\s*=\s*"\K[^"]+' app/build.gradle.kts)
-          echo "APP_VER=v$VER" >> $GITHUB_ENV
+          python -m pip install --upgrade pip pillow fonttools
+          python generate_icons.py
 
-      - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ env.APP_VER }}
-          name: "Smart Cal ${{ env.APP_VER }}"
-          files: app/build/outputs/apk/debug/*.apk
+      - name: Decode Release Keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          mkdir -p app
+          echo "$KEYSTORE_BASE64" | tr -d '\r\n' | base64 --decode > app/smartcal-release.jks
+          test -s app/smartcal-release.jks
 
-      - name: Upload APK
+      - name: Grant Gradlew execute permission
+        run: chmod +x ./gradlew
+
+      - name: Build signed Release APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Remove temporary Keystore
+        if: always()
+        run: rm -f app/smartcal-release.jks
+
+      - name: Upload Release APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SmartCal-${{ env.APP_VER }}-APK
-          path: app/build/outputs/apk/debug/*.apk
+          name: SmartCal-Release-APK
+          path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
