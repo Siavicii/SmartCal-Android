@@ -2496,7 +2496,7 @@ setTimeout(function(){ if (window.__dismissSmartSplash) window.__dismissSmartSpl
     <div class="s-head"><b>📍 انتخاب یا افزودن شهر دلخواه</b><button class="ibtn" onclick="closeModals()">✕</button></div>
     <div style="font-size:11px;color:var(--sec)">نام شهر مورد نظر خود را به فارسی یا انگلیسی جستجو کنید (مثلاً: سقز، بوکان، رشت، لندن، دبی):</div>
     <div class="note-row">
-      <input type="text" id="citySearchInput" placeholder="نام شهر را بنویسید..." onkeydown="if(event.key==='Enter')searchCityOnline()">
+      <input type="text" id="citySearchInput" placeholder="نام هر شهر، بخش یا روستایی را بنویسید..." oninput="debouncedCitySearch()" onkeydown="if(event.key==='Enter')searchCityOnline()">
       <button class="ibtn" style="background:var(--pri);color:var(--onpri);border:none;padding:0 14px" onclick="searchCityOnline()">جستجو</button>
     </div>
     <div id="citySearchResults" style="display:flex;flex-direction:column;gap:6px"></div>
@@ -2712,9 +2712,12 @@ setTimeout(function(){ if (window.__dismissSmartSplash) window.__dismissSmartSpl
       <div class="swatches" id="colorSwatches"></div>
     </div>
     <div>
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <b style="font-size:12px;color:var(--sec)">شهر (برای آب‌وهوا)</b>
-        <button type="button" class="w-city-btn" onclick="detectUserLocation(true)">🎯 تشخیص خودکار مکان</button>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap">
+        <b style="font-size:12px;color:var(--sec)">شهر (آب‌وهوا و تعطیلات استانی)</b>
+        <div style="display:flex;gap:5px">
+          <button type="button" class="w-city-btn" onclick="openCityModal()">🔍 جستجوی آنلاین شهر</button>
+          <button type="button" class="w-city-btn" onclick="detectUserLocation(true)">🎯 مکان من</button>
+        </div>
       </div>
       <select id="setCity" style="margin-top:5px" onchange="saveSettings(true)">
         <option value="35.6892,51.3890,تهران">تهران</option>
@@ -2782,7 +2785,7 @@ setTimeout(function(){ if (window.__dismissSmartSplash) window.__dismissSmartSpl
 <script>
 // Self-healing cache & Service Worker updater for v19
 (function(){
-  const VER = "v68.6";
+  const VER = "v68.7";
   if (localStorage.getItem("smartcal_sw_ver") !== VER) {
     localStorage.setItem("smartcal_sw_ver", VER);
     if ("caches" in window) {
@@ -3027,12 +3030,16 @@ function getEmergencyHolidaysForDay(jy, jm, jd) {
   if (!Array.isArray(list) || !list.length) return [];
   const cityRaw = (cfg && cfg.city ? cfg.city.split(",")[2] : "") || "";
   const userCity = normFaCity(cityRaw);
+  const userProv = normFaCity((cfg && cfg.province) || "");
   return list.filter(item => {
     if (!item || !item.title) return false;
     const cities = Array.isArray(item.cities) ? item.cities.map(normFaCity) : [];
     if (!cities.length || cities.some(c => c === "سراسری" || c === "کل کشور" || c === "ایران" || c === "all")) return true;
-    if (!userCity) return true;
-    return cities.some(c => c.includes(userCity) || userCity.includes(c));
+    if (!userCity && !userProv) return true;
+    return cities.some(c =>
+      (userCity && (c.includes(userCity) || userCity.includes(c))) ||
+      (userProv && (c.includes(userProv) || userProv.includes(c)))
+    );
   });
 }
 function renderEmergencyHolidayBox(jy, jm, jd) {
@@ -3560,6 +3567,223 @@ async function searchCityOnline(){
   }catch(e){
     resBox.innerHTML='<div style="font-size:12px;color:var(--hol)">خطا در اتصال به اینترنت برای جستجوی شهر.</div>';
   }
+}
+
+
+// ====== AUTOMATIC LOCATION DETECTION (GPS + REVERSE GEOCODING + IP FALLBACK) ======
+async function detectUserLocation(manualPrompt = false) {
+  if (!manualPrompt && !cfg.autoLoc) return;
+  if (window.AndroidBridge && typeof window.AndroidBridge.hasLocationPermission === "function") {
+    if (!window.AndroidBridge.hasLocationPermission()) {
+      if (manualPrompt) {
+        try { if (window.AndroidBridge.requestLocationPermission) window.AndroidBridge.requestLocationPermission(); } catch (e) {}
+        try {
+          if (window.AndroidBridge.showNativeToast) {
+            window.AndroidBridge.showNativeToast(tr("برای تشخیص مکان شما، ابتدا مجوز موقعیت مکانی را تأیید کنید", "بۆ دیاریکردنی شوێنەکەت، سەرەتا مۆڵەتی شوێن بدە", "Please grant Location permission first"));
+          }
+        } catch (e) {}
+      }
+      return;
+    }
+  } else if (!manualPrompt && navigator.permissions && navigator.permissions.query) {
+    try {
+      const pSt = await navigator.permissions.query({ name: "geolocation" });
+      if (pSt.state !== "granted") return;
+    } catch (e) { return; }
+  }
+  const btn = document.getElementById("autoLocBtn");
+  if (btn && manualPrompt) {
+    btn.textContent = "⏳ مکان‌یابی...";
+    btn.style.opacity = "0.75";
+  }
+
+  const applyDetectedCoords = async (lat, lon, fallbackCityName = "") => {
+    const cleanLat = Number(Number(lat).toFixed(4));
+    const cleanLon = Number(Number(lon).toFixed(4));
+    let cityName = fallbackCityName;
+    try {
+      const langParam = (cfg.lang === "ku") ? "ku" : "fa";
+      const rg = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${cleanLat}&longitude=${cleanLon}&localityLanguage=${langParam}`).then(r => r.json()).catch(() => null);
+      if (rg) {
+        cityName = rg.city || rg.locality || rg.principalSubdivision || fallbackCityName || "مکان فعلی";
+      }
+    } catch (e) {}
+    if (!cityName) cityName = "مکان فعلی";
+    addAndSelectCity(cityName, cleanLat, cleanLon);
+    if (btn) {
+      btn.textContent = "✅ " + cityName;
+      btn.style.opacity = "1";
+      setTimeout(() => { if (btn) btn.textContent = "🎯 مکان من"; }, 2500);
+    }
+  };
+
+  // 1. Try Browser GPS Geolocation if available
+  if ("geolocation" in navigator) {
+    try {
+      const pos = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: false,
+          timeout: 5500,
+          maximumAge: 600000
+        });
+      });
+      if (pos && pos.coords) {
+        await applyDetectedCoords(pos.coords.latitude, pos.coords.longitude);
+        return;
+      }
+    } catch (e) {
+      // Fall through to IP geolocation if GPS permission denied or timed out
+    }
+  }
+
+  // 2. IP Geolocation Fallback (works seamlessly without permission popups)
+  try {
+    const ipData = await fetch("https://ipwho.is/").then(r => r.json()).catch(() => null);
+    if (ipData && ipData.success && ipData.latitude && ipData.longitude) {
+      await applyDetectedCoords(ipData.latitude, ipData.longitude, ipData.city || "");
+      return;
+    }
+    const ipData2 = await fetch("https://ipapi.co/json/").then(r => r.json()).catch(() => null);
+    if (ipData2 && ipData2.latitude && ipData2.longitude) {
+      await applyDetectedCoords(ipData2.latitude, ipData2.longitude, ipData2.city || "");
+      return;
+    }
+  } catch (e) {}
+
+  if (btn && manualPrompt) {
+    btn.textContent = "🎯 مکان من";
+    btn.style.opacity = "1";
+    openCityModal();
+  }
+}
+
+function addAndSelectCity(name,lat,lon,province=""){
+  const cleanName = String(name || "").trim();
+  const cleanProv = String(province || "").replace(/^استان\s+/,"").trim();
+  if(!cleanName) return;
+  const exists=[...DEFAULT_CITIES,...customCities].find(c=>c.n===cleanName);
+  if(!exists){
+    customCities.push({n:cleanName,lat:Number(lat),lon:Number(lon),p:cleanProv});
+    localStorage.setItem("cal_cities_v9",JSON.stringify(customCities));
+  } else if (cleanProv && !exists.p) {
+    exists.p = cleanProv;
+    localStorage.setItem("cal_cities_v9",JSON.stringify(customCities));
+  }
+  selectCity(lat,lon,cleanName,cleanProv);
+}
+
+function selectCity(lat,lon,name,province=""){
+  cfg.city=`${lat},${lon},${name}`;
+  if (province) {
+    cfg.province = String(province).replace(/^استان\s+/,"").trim();
+  } else {
+    const found = [...DEFAULT_CITIES,...customCities].find(c => c.n === name);
+    cfg.province = (found && found.p) ? found.p : "";
+  }
+  localStorage.setItem("cal_cfg_v4",JSON.stringify(cfg));
+  syncCitySelect();
+  closeModals();
+  render();
+  fetchWeather(true);
+}
+
+function openCityModal(){
+  document.getElementById("citySearchInput").value="";
+  document.getElementById("citySearchResults").innerHTML="";
+  renderSavedCities();
+  pushModalState();document.getElementById("cityModal").classList.add("open");
+  setTimeout(()=>{try{document.getElementById("citySearchInput").focus();}catch(e){}},120);
+}
+
+function renderSavedCities(){
+  const all=[...DEFAULT_CITIES,...customCities];
+  document.getElementById("savedCitiesList").innerHTML=all.map((c,idx)=>`
+    <div class="tag" style="cursor:pointer;padding:6px 10px;display:inline-flex;align-items:center;gap:6px;${cfg.city.endsWith(','+c.n)?'background:var(--pri);color:var(--onpri);font-weight:700':''}" onclick="selectCity(${c.lat},${c.lon},'${esc(c.n).replace(/'/g,"")}','${esc(c.p||"").replace(/'/g,"")}')">
+      <span>${esc(trCity(c.n))}</span>
+      ${idx>=DEFAULT_CITIES.length?`<span onclick="event.stopPropagation();removeCustomCity(${idx-DEFAULT_CITIES.length})" style="opacity:.8">✕</span>`:''}
+    </div>
+  `).join("");
+}
+
+function removeCustomCity(i){
+  customCities.splice(i,1);
+  localStorage.setItem("cal_cities_v9",JSON.stringify(customCities));
+  syncCitySelect();renderSavedCities();
+}
+
+let _citySearchTimer = null;
+function debouncedCitySearch(){
+  clearTimeout(_citySearchTimer);
+  const q = (document.getElementById("citySearchInput").value || "").trim();
+  if (q.length < 2) {
+    document.getElementById("citySearchResults").innerHTML = "";
+    return;
+  }
+  _citySearchTimer = setTimeout(() => searchCityOnline(), 420);
+}
+
+async function searchCityOnline(){
+  const q=document.getElementById("citySearchInput").value.trim();
+  const resBox=document.getElementById("citySearchResults");
+  if(!q){return;}
+  resBox.innerHTML='<div style="font-size:12px;color:var(--sec)">🔍 در حال جستجوی آنلاین مکان...</div>';
+  const combined = [];
+  const pushUnique = (item) => {
+    if (!item || !item.name || !isFinite(item.lat) || !isFinite(item.lon)) return;
+    const dup = combined.some(x => Math.abs(x.lat - item.lat) < 0.08 && Math.abs(x.lon - item.lon) < 0.08);
+    if (!dup) combined.push(item);
+  };
+
+  // Query OpenStreetMap Nominatim (covers every Iranian city, town, village & district in Persian) + Open-Meteo in parallel
+  const tasks = [
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&accept-language=fa&limit=8&q=${encodeURIComponent(q)}`, {
+      headers: { "Accept": "application/json" }
+    }).then(r => r.ok ? r.json() : []).then(arr => {
+      if (!Array.isArray(arr)) return;
+      arr.forEach(it => {
+        const addr = it.address || {};
+        const name = it.name || addr.city || addr.town || addr.village || addr.county || (it.display_name || "").split("،")[0].split(",")[0].trim();
+        const prov = (addr.state || addr.province || "").replace(/^استان\s+/, "").trim();
+        const country = addr.country || "";
+        pushUnique({
+          name,
+          province: prov,
+          country,
+          lat: Number(parseFloat(it.lat).toFixed(4)),
+          lon: Number(parseFloat(it.lon).toFixed(4))
+        });
+      });
+    }).catch(() => {}),
+    fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=fa&format=json`)
+      .then(r => r.ok ? r.json() : null).then(data => {
+        if (!data || !Array.isArray(data.results)) return;
+        data.results.forEach(it => {
+          pushUnique({
+            name: it.name,
+            province: (it.admin1 || "").replace(/^استان\s+/, "").trim(),
+            country: it.country || "",
+            lat: Number(it.latitude.toFixed(4)),
+            lon: Number(it.longitude.toFixed(4))
+          });
+        });
+      }).catch(() => {})
+  ];
+
+  await Promise.allSettled(tasks);
+
+  if(!combined.length){
+    resBox.innerHTML='<div style="font-size:12px;color:var(--hol)">مکانی با این نام پیدا نشد. املای نام شهر یا روستا را بررسی کنید.</div>';
+    return;
+  }
+  resBox.innerHTML=combined.slice(0, 8).map(item=>{
+    const subParts = [item.province, item.country].filter(Boolean);
+    const safeName = esc(item.name).replace(/'/g,"");
+    const safeProv = esc(item.province || "").replace(/'/g,"");
+    return `<div class="note-item" style="cursor:pointer" onclick="addAndSelectCity('${safeName}',${item.lat},${item.lon},'${safeProv}')">
+      <div><b>${esc(item.name)}</b><div style="font-size:10px;color:var(--sec)">${esc(subParts.join(" • "))}</div></div>
+      <span class="pill" style="padding:4px 9px;font-size:11px">+ انتخاب</span>
+    </div>`;
+  }).join("");
 }
 
 
