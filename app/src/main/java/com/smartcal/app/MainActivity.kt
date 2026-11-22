@@ -34,7 +34,9 @@ import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.IconCompat
+import androidx.core.graphics.ColorUtils
 import androidx.core.view.WindowCompat
+import android.view.WindowManager
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.webkit.WebViewAssetLoader
 import org.json.JSONObject
@@ -55,6 +57,59 @@ class MainActivity : AppCompatActivity() {
     private var alertSeqId = 6300
 
     private var pendingWebPermRequest: PermissionRequest? = null
+    private var lastBarColor: Int = Color.parseColor("#F4F6FA")
+    private var lastLightBg: Boolean = true
+
+    private fun applySystemBars(colorInt: Int, lightBackground: Boolean) {
+        lastBarColor = colorInt
+        lastLightBg = lightBackground
+        try {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
+            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION)
+            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
+            window.statusBarColor = colorInt
+            window.navigationBarColor = colorInt
+
+            val ctrl = WindowInsetsControllerCompat(window, window.decorView)
+            ctrl.isAppearanceLightStatusBars = lightBackground
+            ctrl.isAppearanceLightNavigationBars = lightBackground
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val mask = android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or
+                    android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
+                window.insetsController?.setSystemBarsAppearance(
+                    if (lightBackground) mask else 0,
+                    mask
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                var flags = window.decorView.systemUiVisibility
+                @Suppress("DEPRECATION")
+                flags = if (lightBackground) {
+                    flags or android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+                } else {
+                    flags and android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR.inv()
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    @Suppress("DEPRECATION")
+                    flags = if (lightBackground) {
+                        flags or android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+                    } else {
+                        flags and android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR.inv()
+                    }
+                }
+                @Suppress("DEPRECATION")
+                window.decorView.systemUiVisibility = flags
+            }
+        } catch (_: Exception) {}
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            applySystemBars(lastBarColor, lastLightBg)
+        }
+    }
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -68,6 +123,7 @@ class MainActivity : AppCompatActivity() {
         val isNightNow = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
         val bootBgColor = if (isNightNow) Color.parseColor("#0F172A") else Color.parseColor("#F4F6FA")
         window.decorView.setBackgroundColor(bootBgColor)
+        applySystemBars(bootBgColor, !isNightNow)
         webView = WebView(this).apply {
             setBackgroundColor(bootBgColor)
             setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
@@ -349,11 +405,10 @@ class MainActivity : AppCompatActivity() {
         fun syncStatusBarColor(hexColor: String, isLightIcons: Boolean) {
             runOnUiThread {
                 try {
-                    window.statusBarColor = Color.parseColor(hexColor)
-                    window.navigationBarColor = Color.parseColor(hexColor)
-                    val ctrl = WindowInsetsControllerCompat(window, window.decorView)
-                    ctrl.isAppearanceLightStatusBars = isLightIcons
-                    ctrl.isAppearanceLightNavigationBars = isLightIcons
+                    val parsedColor = Color.parseColor(hexColor)
+                    // Use actual color luminance so light backgrounds ALWAYS get dark/black icons
+                    val isLightBg = ColorUtils.calculateLuminance(parsedColor) > 0.45
+                    applySystemBars(parsedColor, isLightBg)
                 } catch (_: Exception) {}
             }
         }
