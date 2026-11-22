@@ -93,24 +93,26 @@ def fetch_relevant_news():
                     items.append(f"[{source_name}] {text}")
         except Exception as e:
             print(f"Warning: failed to fetch {source_name}: {e}")
-    return items[:30]
+    return items[:25]
 
 def discover_gemini_models(api_key):
     url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
     req = urllib.request.Request(url, method="GET")
     with urllib.request.urlopen(req, timeout=20) as resp:
         data = json.loads(resp.read().decode("utf-8"))
+    excluded = ("image", "audio", "tts", "embedding", "vision")
     candidates = []
     for m in data.get("models", []):
         name = m.get("name", "")
         methods = m.get("supportedGenerationMethods", [])
-        if "generateContent" in methods and "gemini" in name.lower():
-            short = name.replace("models/", "")
-            candidates.append(short)
-    # Prioritize flash models (fast & free-tier friendly)
-    flash_models = [c for c in candidates if "flash" in c.lower() and "image" not in c.lower() and "audio" not in c.lower()]
-    other_models = [c for c in candidates if c not in flash_models and "image" not in c.lower() and "audio" not in c.lower()]
-    ordered = flash_models + other_models
+        low = name.lower()
+        if "generateContent" in methods and "gemini" in low and not any(x in low for x in excluded):
+            candidates.append(name.replace("models/", ""))
+    # Prioritize fast flash-lite models first, then flash, then others
+    lite_models = [c for c in candidates if "flash-lite" in c.lower()]
+    flash_models = [c for c in candidates if "flash" in c.lower() and c not in lite_models]
+    other_models = [c for c in candidates if c not in lite_models and c not in flash_models]
+    ordered = lite_models + flash_models + other_models
     print("Available Gemini models:", ", ".join(ordered[:6]))
     return ordered
 
@@ -158,7 +160,7 @@ def call_gemini(api_key, news_lines, today_jalali, today_greg):
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
         req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
         try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
+            with urllib.request.urlopen(req, timeout=60) as resp:
                 res = json.loads(resp.read().decode("utf-8"))
             print(f"Using Gemini model: {model}")
             raw_text = res["candidates"][0]["content"]["parts"][0]["text"].strip()
@@ -168,6 +170,11 @@ def call_gemini(api_key, news_lines, today_jalali, today_greg):
         except urllib.error.HTTPError as e:
             body = e.read().decode("utf-8", errors="ignore")[:200]
             last_err = f"{model} -> HTTP {e.code}: {body}"
+            print(f"Model {model} failed: HTTP {e.code}, trying next...")
+            continue
+        except Exception as e:
+            last_err = f"{model} -> {e}"
+            print(f"Model {model} error: {e}, trying next...")
             continue
     raise RuntimeError(f"Failed on discovered models. Last: {last_err}")
 
