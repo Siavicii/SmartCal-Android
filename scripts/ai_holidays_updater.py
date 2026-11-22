@@ -9,6 +9,7 @@ import json
 import os
 import re
 import sys
+import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
 
@@ -17,7 +18,6 @@ RSS_FEEDS = [
     ("ایسنا", "https://www.isna.ir/rss"),
     ("خبرگزاری مهر", "https://www.mehrnews.com/rss"),
     ("خبرآنلاین", "https://www.khabaronline.ir/rss"),
-
 ]
 
 KEYWORDS = [
@@ -30,7 +30,7 @@ def div(a, b): return int(a / b)
 def mod(a, b): return a - int(a / b) * b
 
 def jal_cal(jy):
-    br = [-61,9,38,199,426,686,756,818,1111,1181,1210,1635,2060,2097,2192,2262,2324,2394,2456,3178]
+    br = [-61, 9, 38, 199, 426, 686, 756, 818, 1111, 1181, 1210, 1635, 2060, 2097, 2192, 2262, 2324, 2394, 2456, 3178]
     gy = jy + 621
     leap_j = -14
     jp = br[0]
@@ -95,7 +95,12 @@ def fetch_relevant_news():
     return items[:30]
 
 def call_gemini(api_key, news_lines, today_jalali, today_greg):
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+    models = [
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-2.0-flash-lite",
+        "gemini-1.5-flash",
+    ]
     prompt = f"""
 امروز {today_jalali} شمسی (برابر با {today_greg} میلادی) است.
 تیتر و خلاصه خبرهای زیر از خبرگزاری‌های رسمی ایران استخراج شده است:
@@ -129,13 +134,26 @@ def call_gemini(api_key, news_lines, today_jalali, today_greg):
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {"temperature": 0.1, "responseMimeType": "application/json"}
     }).encode("utf-8")
-    req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        res = json.loads(resp.read().decode("utf-8"))
-    raw_text = res["candidates"][0]["content"]["parts"][0]["text"].strip()
-    raw_text = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw_text)
-    parsed = json.loads(raw_text)
-    return parsed if isinstance(parsed, list) else []
+
+    last_err = None
+    for model in models:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                res = json.loads(resp.read().decode("utf-8"))
+            print(f"Using Gemini model: {model}")
+            raw_text = res["candidates"][0]["content"]["parts"][0]["text"].strip()
+            raw_text = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw_text)
+            parsed = json.loads(raw_text)
+            return parsed if isinstance(parsed, list) else []
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8", errors="ignore")[:200]
+            last_err = f"{model} -> HTTP {e.code}: {body}"
+            if e.code == 404:
+                continue
+            raise RuntimeError(last_err)
+    raise RuntimeError(f"All Gemini models returned 404. Last: {last_err}")
 
 def main():
     api_key = os.environ.get("GEMINI_API_KEY", "").strip()
