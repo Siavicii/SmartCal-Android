@@ -381,16 +381,20 @@ class MainActivity : AppCompatActivity() {
     }
 
 
+    private fun pushNativeDarkStateToWebView(isNight: Boolean) {
+        if (!this::webView.isInitialized) return
+        runOnUiThread {
+            webView.evaluateJavascript(
+                "window.__nativeSystemDark=$isNight; if(typeof applyCfg==='function'){applyCfg();} if(typeof render==='function'){render();}",
+                null
+            )
+        }
+    }
+
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
-        if (this::webView.isInitialized) {
-            runOnUiThread {
-                webView.evaluateJavascript(
-                    "if (typeof applyCfg === 'function') { applyCfg(); } if (typeof render === 'function') { render(); }",
-                    null
-                )
-            }
-        }
+        val isNight = (newConfig.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        pushNativeDarkStateToWebView(isNight)
     }
 
     override fun onResume() {
@@ -400,6 +404,8 @@ class MainActivity : AppCompatActivity() {
         try {
             IconUpdater.scheduleNextMidnight(this)
         } catch (_: Exception) {}
+        val isNight = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        pushNativeDarkStateToWebView(isNight)
     }
 
     override fun onDestroy() {
@@ -656,6 +662,11 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun updateWidgetData(city: String, weather: String, summary: String) {
             SmartCalWidgetProvider.saveContent(this@MainActivity, city, weather, summary)
+        }
+
+        @JavascriptInterface
+        fun isSystemDarkMode(): Boolean {
+            return (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
         }
 
         @JavascriptInterface
