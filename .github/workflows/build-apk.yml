@@ -20,6 +20,9 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
       - name: Set up Python & Pillow for dynamic icons
         if: hashFiles('generate_icons.py') != ''
         uses: actions/setup-python@v5
@@ -40,15 +43,12 @@ jobs:
           echo "$KEYSTORE_BASE64" | tr -d '\r\n' | base64 --decode > app/smartcal-release.jks
           test -s app/smartcal-release.jks
 
-      - name: Grant Gradlew execute permission
-        run: chmod +x ./gradlew
-
       - name: Build signed Release APK
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew assembleRelease --no-daemon
+        run: gradle assembleRelease --no-daemon
 
       - name: Remove temporary Keystore
         if: always()
