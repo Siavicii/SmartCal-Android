@@ -50,7 +50,7 @@ import java.net.URL
 class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
-    private val GITHUB_REPO = "Siavicii/SmartCal-Android"
+    private val GITHUB_REPO = "Siavicii/SmartCalender-Android"
     private val CHANNEL_ID = "smartcal_status_date_channel"
     private val ALERT_CHANNEL_ID = "smartcal_alerts_channel"
     private val NOTIF_ID = 6201
@@ -341,7 +341,7 @@ class MainActivity : AppCompatActivity() {
                     readTimeout = 3000
                     requestMethod = "GET"
                     setRequestProperty("Accept", "application/vnd.github+json")
-                    setRequestProperty("User-Agent", "SmartCal-Android")
+                    setRequestProperty("User-Agent", "SmartCalender-Android")
                 }
                 if (conn.responseCode != 200) {
                     if (manual) runOnUiThread {

@@ -3668,7 +3668,7 @@ let remoteIrHol=JSON.parse(localStorage.getItem(REMOTE_IR_HOL_KEY)||"{}");
 async function syncRemoteIrHolidays(force=false){
   const lastTs=Number(localStorage.getItem(REMOTE_IR_HOL_KEY+"_ts")||0);
   if(!force && Date.now()-lastTs<7200000) return false;
-  const urls=["https://raw.githubusercontent.com/Siavicii/SmartCal-Android/main/holidays.json","./holidays.json"];
+  const urls=["https://raw.githubusercontent.com/Siavicii/SmartCalender-Android/main/holidays.json","./holidays.json"];
   for(const u of urls){
     try{
       const r=await fetch(u+(u.includes("?")?"&":"?")+"t="+Date.now(),{cache:"no-store"});
@@ -9859,12 +9859,12 @@ async function syncRemoteDailyFal(force = false) {
   const isAnd = (typeof isAndroidAppEnv === "function" && isAndroidAppEnv());
   const urls = isAnd
     ? [
-        "https://raw.githubusercontent.com/Siavicii/SmartCal-Android/main/daily_fal.json",
+        "https://raw.githubusercontent.com/Siavicii/SmartCalender-Android/main/daily_fal.json",
         "./daily_fal.json"
       ]
     : [
         "./daily_fal.json",
-        "https://raw.githubusercontent.com/Siavicii/SmartCal-Android/main/daily_fal.json"
+        "https://raw.githubusercontent.com/Siavicii/SmartCalender-Android/main/daily_fal.json"
       ];
   try {
     for (const u of urls) {
@@ -10505,7 +10505,7 @@ function dismissAppUpdateBanner() {
 
 async function applyAppUpdateNow() {
   if (isAndroidAppEnv()) {
-    const url = (_pendingUpdateInfo && _pendingUpdateInfo.apk_url) || "https://github.com/Siavicii/SmartCal-Android/releases/latest";
+    const url = (_pendingUpdateInfo && _pendingUpdateInfo.apk_url) || "https://github.com/Siavicii/SmartCalender-Android/releases/latest";
     if (window.AndroidBridge && typeof window.AndroidBridge.openExternalUrl === "function") {
       try { window.AndroidBridge.openExternalUrl(url); } catch (e) { window.location.href = url; }
     } else {
@@ -10532,12 +10532,12 @@ async function checkForAppUpdate(manual = false) {
   const isAnd = isAndroidAppEnv();
   const urls = isAnd
     ? [
-        "https://raw.githubusercontent.com/Siavicii/SmartCal-Android/main/version.json",
-        "https://raw.githubusercontent.com/Siavicii/SmartCal-Android/main/app/src/main/assets/www/version.json"
+        "https://raw.githubusercontent.com/Siavicii/SmartCalender-Android/main/version.json",
+        "https://raw.githubusercontent.com/Siavicii/SmartCalender-Android/main/app/src/main/assets/www/version.json"
       ]
     : [
         "./version.json",
-        "https://raw.githubusercontent.com/Siavicii/SmartCal-Android/main/version.json"
+        "https://raw.githubusercontent.com/Siavicii/SmartCalender-Android/main/version.json"
       ];
 
   for (const u of urls) {
