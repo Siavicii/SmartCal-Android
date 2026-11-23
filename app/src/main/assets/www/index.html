@@ -50,7 +50,7 @@
   --shadow:0 8px 32px rgba(0,0,0,0.45);
 }
 [data-ui="glass"] .card,[data-ui="glass"] .w-card,[data-ui="glass"] .nav,[data-ui="glass"] .sheet{
-  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  
 }
 [data-ui="glass"] .day.sel{box-shadow:0 4px 14px var(--pri-bg)}
 
@@ -298,8 +298,8 @@ body::before {
   background: linear-gradient(180deg, var(--status-bg, var(--bg)) 68%, transparent 100%);
   z-index: 42;
   pointer-events: none;
-  backdrop-filter: blur(16px) saturate(160%);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  
+  
 }
 .install-card{
   background:var(--pri-bg);border:1px solid var(--pri);border-radius:16px;padding:10px 12px;
@@ -329,8 +329,8 @@ body::before {
 [data-ui="ios26"] .ibtn,
 [data-ui="ios26"] .pill,
 [data-ui="ios26"] .w-city-btn {
-  backdrop-filter: blur(34px) saturate(210%);
-  -webkit-backdrop-filter: blur(34px) saturate(210%);
+  
+  
   box-shadow: var(--shadow);
 }
 [data-ui="ios26"] .w-card {
@@ -389,8 +389,8 @@ body::before {
 [data-ui="ios26"] .w-day {
   border-radius: 18px;
   border: 1px solid var(--brd);
-  backdrop-filter: blur(18px) saturate(170%);
-  -webkit-backdrop-filter: blur(18px) saturate(170%);
+  
+  
 }
 [data-ui="ios26"] .nav {
   bottom: calc(12px + env(safe-area-inset-bottom, 0px));
@@ -401,8 +401,8 @@ body::before {
   background: rgba(255, 255, 255, 0.56);
   border: 1px solid rgba(255, 255, 255, 0.82);
   padding: 6px 8px;
-  backdrop-filter: blur(40px) saturate(220%);
-  -webkit-backdrop-filter: blur(40px) saturate(220%);
+  
+  
   box-shadow: 0 16px 40px rgba(15, 23, 42, 0.14), inset 0 1.5px 0 rgba(255, 255, 255, 0.9);
 }
 [data-theme=dark][data-ui="ios26"] .nav {
@@ -985,8 +985,8 @@ input[type="range"]::-moz-range-thumb {
   justify-content: center;
   padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px));
   background: rgba(8, 12, 24, 0.48);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  
+  
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -1144,8 +1144,8 @@ input[type="range"]::-moz-range-thumb {
 /* iOS 26 Liquid Glass */
 [data-ui="ios26"] #smartSelectPicker .sp-sheet {
   border-radius: 34px;
-  backdrop-filter: blur(28px) saturate(185%);
-  -webkit-backdrop-filter: blur(28px) saturate(185%);
+  
+  
   background: rgba(255, 255, 255, 0.78);
   border: 1px solid rgba(255, 255, 255, 0.85);
   box-shadow: 0 24px 60px rgba(15, 23, 42, 0.2), inset 0 1.5px 0 rgba(255, 255, 255, 0.85);
@@ -1170,8 +1170,8 @@ input[type="range"]::-moz-range-thumb {
 
 /* Glass (Aurora) */
 [data-ui="glass"] #smartSelectPicker .sp-sheet {
-  backdrop-filter: blur(22px) saturate(160%);
-  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  
+  
   border-radius: 28px;
 }
 
@@ -1560,8 +1560,8 @@ body.app-booting .app {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  backdrop-filter: blur(0px);
-  -webkit-backdrop-filter: blur(0px);
+  
+  
   transition: opacity 0.26s cubic-bezier(0.22, 1, 0.36, 1),
               visibility 0.26s ease,
               backdrop-filter 0.28s ease;
@@ -1570,8 +1570,8 @@ body.app-booting .app {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  
+  
 }
 .modal .sheet {
   transform: translateY(34px) scale(0.97);
@@ -2124,8 +2124,8 @@ body {
   align-items: center;
   justify-content: center;
   background: rgba(10, 14, 24, 0.72);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  
+  
   padding: 20px;
 }
 #celebrationOverlay.open {
@@ -2279,8 +2279,8 @@ body {
   align-items: flex-end;
   justify-content: center;
   background: rgba(10, 14, 24, 0.48);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  
+  
   padding: 14px;
 }
 #permGuideOverlay.open { display: flex; }
@@ -2307,6 +2307,47 @@ body {
 .perm-ico { font-size: 20px; line-height: 1.2; flex-shrink: 0; }
 .perm-txt b { font-size: 12px; display: block; margin-bottom: 2px; color: var(--pri); }
 .perm-txt span { font-size: 11px; line-height: 1.6; color: var(--sec); display: block; }
+
+
+/* 60fps Fluidity & Instant Touch Response (v70.6) */
+button, .ibtn, .nbtn, .dcell, .m-ev, .tag, .pill, .fchip, .w-city-btn {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.nbtn:active, .ibtn:active, .dcell:active, .happy-btn:active, .upd-btn-main:active {
+  transform: scale(0.95);
+  transition: transform 0.08s ease;
+}
+.card {
+  contain: layout style;
+}
+.view {
+  contain: layout style;
+  will-change: transform, opacity;
+}
+.view.active {
+  animation-duration: 0.16s !important;
+  animation-timing-function: cubic-bezier(0.2, 0.85, 0.3, 1) !important;
+}
+.nav, .bnav, nav.nav {
+  background: var(--card) !important;
+  transform: translate3d(0, 0, 0);
+}
+
+
+/* 120Hz Silky Scroll & Soft Micro-Interactions (v70.7) */
+html, body {
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.sheet, .modal, #monthEvBox {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.view.active {
+  animation-duration: 0.14s !important;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
 
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -3029,7 +3070,7 @@ setTimeout(function(){ if (window.__dismissSmartSplash) window.__dismissSmartSpl
 <script>
 // Self-healing cache & Service Worker updater for v19
 (function(){
-  const VER = "v70.5";
+  const VER = "v70.7";
   if (localStorage.getItem("smartcal_sw_ver") !== VER) {
     localStorage.setItem("smartcal_sw_ver", VER);
     if ("caches" in window) {
@@ -3510,6 +3551,34 @@ function getExtraWorldAndCountryEv(jy, jm, jd) {
   return out;
 }
 
+
+function normEvForDedup(s) {
+  return String(s || "")
+    .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\uFE0F]/gu, "")
+    .replace(/[ي]/g, "ی").replace(/[ك]/g, "ک").replace(/\u200c/g, " ")
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/معلولیت|معلولان|کم.?توانان/g, "معلول")
+    .replace(/مبارزه با|افراد دارای|روز جهانی|روز ملی|روز|جشن|سالروز|بزرگداشت/g, " ")
+    .replace(/[^\u0600-\u06FFa-zA-Z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+function isDupEvTitle(list, title) {
+  const nNew = normEvForDedup(title);
+  if (!nNew) return false;
+  return list.some(ex => {
+    const exTitle = Array.isArray(ex) ? ex[0] : String(ex || "");
+    if (exTitle === title) return true;
+    const nEx = normEvForDedup(exTitle);
+    if (!nEx) return false;
+    if (nEx === nNew) return true;
+    if (nNew.length >= 4 && nEx.includes(nNew)) return true;
+    if (nEx.length >= 4 && nNew.includes(nEx)) return true;
+    return false;
+  });
+}
+
 function getEv(y,m,d){
   const k=m+"-"+d,yk=y+"-"+m+"-"+d,r=[];
   const activeCountry = cfg?.countryCode || "IR";
@@ -3518,7 +3587,7 @@ function getEv(y,m,d){
     const yrHol = (remoteIrHol && remoteIrHol[String(y)]) || IR_OFFICIAL_YEAR_HOL[String(y)];
     if(yrHol && yrHol[k]) {
       yrHol[k].forEach(item => {
-        if (!r.some(ex => ex[0] === item[0])) r.push(item);
+        if (!isDupEvTitle(r, item[0])) r.push(item);
       });
     }
     if (typeof getEmergencyHolidaysForDay === "function") {
@@ -3535,7 +3604,7 @@ function getEv(y,m,d){
   if (typeof getExtraWorldAndCountryEv === "function") {
     const extra = getExtraWorldAndCountryEv(y,m,d);
     extra.forEach(item => {
-      if (!r.some(existing => existing[0] === item[0])) r.push(item);
+      if (!isDupEvTitle(r, item[0])) r.push(item);
     });
   }
   return r.map(e=>[trEvTitle(e[0]),e[1],e[2],e[3]]);
@@ -7447,7 +7516,7 @@ function render(){
       groupedMList.push(obj);
     } else {
       const obj = grpMap.get(gk);
-      if (!obj.titles.includes(x.t)) obj.titles.push(x.t);
+      if (!isDupEvTitle(obj.titles, x.t)) obj.titles.push(x.t);
       if (x.h) obj.h = true;
     }
   });
@@ -9767,7 +9836,7 @@ setTimeout(() => { try { applySavedCardOrders(); } catch (e) {} }, 60);
 
 
 // ====== IN-APP SMART UPDATE NOTIFIER (v70.3) ======
-const APP_CURRENT_VER = "70.5";
+const APP_CURRENT_VER = "70.7";
 let _pendingUpdateInfo = null;
 
 function cmpSemVer(a, b) {
@@ -9871,7 +9940,20 @@ async function checkForAppUpdate(manual = false) {
   return false;
 }
 
+const UPD_LAST_CHK_KEY = "smartcal_upd_last_chk_ts";
+const _origCheckForAppUpdate = checkForAppUpdate;
+checkForAppUpdate = async function(manual = false) {
+  localStorage.setItem(UPD_LAST_CHK_KEY, String(Date.now()));
+  return _origCheckForAppUpdate(manual);
+};
 setTimeout(() => { try { checkForAppUpdate(false); } catch (e) {} }, 4500);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible") return;
+  const lastTs = Number(localStorage.getItem(UPD_LAST_CHK_KEY) || 0);
+  if (Date.now() - lastTs >= 3600000) {
+    setTimeout(() => { try { checkForAppUpdate(false); } catch (e) {} }, 1200);
+  }
+});
 
 
 

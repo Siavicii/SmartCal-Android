@@ -134,6 +134,31 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    @Suppress("DEPRECATION")
+    private fun enableHighRefreshRate() {
+        try {
+            val disp = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                display
+            } else {
+                windowManager.defaultDisplay
+            } ?: return
+            val modes = disp.supportedModes
+            if (modes.isNullOrEmpty()) return
+            val curMode = disp.mode
+            val sameResModes = modes.filter {
+                it.physicalWidth == curMode.physicalWidth && it.physicalHeight == curMode.physicalHeight
+            }
+            val bestMode = (if (sameResModes.isNotEmpty()) sameResModes else modes.toList())
+                .maxByOrNull { it.refreshRate } ?: return
+            val lp = window.attributes
+            if (lp.preferredDisplayModeId != bestMode.modeId || lp.preferredRefreshRate != bestMode.refreshRate) {
+                lp.preferredDisplayModeId = bestMode.modeId
+                lp.preferredRefreshRate = bestMode.refreshRate
+                window.attributes = lp
+            }
+        } catch (_: Exception) {}
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
@@ -141,6 +166,7 @@ class MainActivity : AppCompatActivity() {
 
         createNotificationChannel()
         WindowCompat.setDecorFitsSystemWindows(window, true)
+        enableHighRefreshRate()
         val isNightNow = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
         val bootBgColor = if (isNightNow) Color.parseColor("#0F172A") else Color.parseColor("#F4F6FA")
         window.decorView.setBackgroundColor(bootBgColor)
@@ -412,6 +438,7 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         userLeftApp = false
         isRequestingPermission = false
+        enableHighRefreshRate()
         // Do NOT toggle launcher activity-alias in onResume(); Android kills the foreground Activity on first install!
         // Only schedule the midnight alarm safely here; icon alias swap happens cleanly in onStop().
         try {
