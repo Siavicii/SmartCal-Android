@@ -1,0 +1,45 @@
+name: AI Daily Horoscope Updater
+
+on:
+  schedule:
+    # Run daily at 06:00 IRST (02:30 UTC)
+    - cron: "30 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-fal:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run Gemini AI Daily Horoscope Generator
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python scripts/ai_fal_updater.py
+
+      - name: Commit updated daily_fal.json if changed
+        run: |
+          git config user.name "SmartCal AI Bot"
+          git config user.email "actions@users.noreply.github.com"
+          if [ -f daily_fal.json ] && ! git diff --quiet daily_fal.json app/src/main/assets/www/daily_fal.json 2>/dev/null; then
+            git add daily_fal.json app/src/main/assets/www/daily_fal.json
+            git commit -m "chore(ai): update daily Gemini horoscopes in daily_fal.json"
+            git push
+          else
+            git add daily_fal.json app/src/main/assets/www/daily_fal.json 2>/dev/null || true
+            if ! git diff --cached --quiet; then
+              git commit -m "chore(ai): initialize daily_fal.json"
+              git push
+            else
+              echo "No changes in daily_fal.json."
+            fi
+          fi
