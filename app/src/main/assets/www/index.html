@@ -716,7 +716,7 @@ body.atm-clear { background-image: radial-gradient(circle at 88% 8%, rgba(250,20
   gap: 16px;
   background: var(--bg, #F4F6FA);
   color: var(--txt, #0F172A);
-  transition: opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1), transform 0.42s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.42s ease;
+  transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1), transform 0.55s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.55s ease;
   will-change: opacity, transform;
   pointer-events: auto;
   padding: env(safe-area-inset-top, 0px) 24px env(safe-area-inset-bottom, 0px);
@@ -792,12 +792,20 @@ body.atm-clear { background-image: radial-gradient(circle at 88% 8%, rgba(250,20
   animation: splashSlide 0.9s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 .app {
-  transition: opacity 0.38s cubic-bezier(0.22, 1, 0.36, 1), transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 0.52s cubic-bezier(0.22, 1, 0.36, 1), transform 0.52s cubic-bezier(0.22, 1, 0.36, 1);
 }
 body.app-booting .app {
   opacity: 0;
-  transform: translateY(10px);
+  transform: translateY(12px);
 }
+html[data-boot-dark="1"],
+html[data-boot-dark="1"] body,
+html[data-boot-dark="1"] #smartSplash {
+  background: #0F172A !important;
+  color: #F8FAFC !important;
+}
+html[data-boot-dark="1"] .splash-title { color: #F8FAFC !important; }
+html[data-boot-dark="1"] .splash-sub-row { color: #94A3B8 !important; }
 @keyframes splashLogoIn {
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
@@ -2511,36 +2519,31 @@ html, body {
 }
 
 
-/* Magical Reveal Animation for Horoscope & Omen (v72) */
+/* Magical Reveal Animation for Horoscope & Omen (v72 - Zero-Blink GPU) */
 @keyframes magicFalReveal {
   0% {
     opacity: 0;
-    transform: translateY(14px) scale(0.975);
-    filter: blur(4px);
-  }
-  65% {
-    opacity: 1;
-    filter: blur(0px);
+    transform: translate3d(0, 12px, 0) scale(0.985);
   }
   100% {
     opacity: 1;
-    transform: translateY(0) scale(1);
-    filter: blur(0px);
+    transform: translate3d(0, 0, 0) scale(1);
   }
 }
 @keyframes magicSparkleGlow {
-  0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.35); }
-  70% { box-shadow: 0 0 22px 4px rgba(139, 92, 246, 0.14); }
+  0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.28); }
+  65% { box-shadow: 0 0 20px 3px rgba(139, 92, 246, 0.12); }
   100% { box-shadow: none; }
 }
 .fal-magic-enter > * {
-  animation: magicFalReveal 0.48s cubic-bezier(0.22, 1.15, 0.36, 1) both;
+  animation: magicFalReveal 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity;
 }
-.fal-magic-enter > *:nth-child(2) { animation-delay: 0.06s; }
-.fal-magic-enter > *:nth-child(3) { animation-delay: 0.12s; }
-.fal-magic-enter > *:nth-child(4) { animation-delay: 0.18s; }
+.fal-magic-enter > *:nth-child(2) { animation-delay: 0.05s; }
+.fal-magic-enter > *:nth-child(3) { animation-delay: 0.10s; }
+.fal-magic-enter > *:nth-child(4) { animation-delay: 0.15s; }
 .fal-magic-glow {
-  animation: magicSparkleGlow 0.85s ease-out;
+  animation: magicSparkleGlow 0.7s ease-out;
 }
 
 
@@ -2554,7 +2557,22 @@ html:not(.app-ready) .view.active {
 </style>
 
 </head>
-<body>
+<body class="app-booting">
+<script>
+(function(){
+  try {
+    var raw = localStorage.getItem("cal_cfg_v4");
+    var c = raw ? JSON.parse(raw) : {};
+    var sysDark = (window.AndroidBridge && typeof window.AndroidBridge.isSystemDarkMode === "function")
+      ? !!window.AndroidBridge.isSystemDarkMode()
+      : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    var isDark = c.systemSync ? sysDark : (c.dark === true || (c.dark === undefined && sysDark));
+    if (isDark) {
+      document.documentElement.setAttribute("data-boot-dark", "1");
+    }
+  } catch (e) {}
+})();
+</script>
 
 <div id="smartSplash" aria-hidden="true">
   <div class="splash-emblem">
@@ -2578,22 +2596,23 @@ window.__dismissSmartSplash = function() {
   if (window.__splashDone) return;
   window.__splashDone = true;
   var elapsed = Date.now() - (window.__splashStartMs || 0);
-  var waitMs = Math.max(0, 380 - elapsed);
+  var waitMs = Math.max(0, 850 - elapsed);
   setTimeout(function() {
     requestAnimationFrame(function() {
       requestAnimationFrame(function() {
+        document.documentElement.removeAttribute("data-boot-dark");
         document.body.classList.remove("app-booting");
         var sp = document.getElementById("smartSplash");
         if (sp) {
           sp.classList.add("hide");
-          setTimeout(function() { if (sp.parentNode) sp.remove(); }, 460);
+          setTimeout(function() { if (sp.parentNode) sp.remove(); }, 600);
         }
       });
     });
   }, waitMs);
 };
-// Hard safety fallback (1.5s max)
-setTimeout(function(){ if (window.__dismissSmartSplash) window.__dismissSmartSplash(); }, 1500);
+// Hard safety fallback (2.4s max)
+setTimeout(function(){ if (window.__dismissSmartSplash) window.__dismissSmartSplash(); }, 2400);
 </script>
 <div class="app">
   <!-- Top Bar (Cleaned: Today pill + Style, Converter & Settings neatly fitted across FA / KU / EN) -->
@@ -4512,8 +4531,14 @@ function switchTab(t, swipeDir = 0){
         setTimeout(() => { if (activeTabId === "mkt") try { fetchMarket(false); } catch (e) {} }, 120);
       }
     } else if (t === "fal") {
-      try { if (typeof rollFreshFalEntropy === "function") rollFreshFalEntropy(); renderFal(true); } catch (e) {}
-      setTimeout(() => { if (activeTabId === "fal") try { if (typeof fetchAiDailyFal === "function") fetchAiDailyFal(false); } catch (e) {} }, 150);
+      try {
+        if (typeof fetchAiDailyFal === "function") {
+          fetchAiDailyFal(true);
+        } else {
+          if (typeof rollFreshFalEntropy === "function") rollFreshFalEntropy();
+          renderFal(true, true);
+        }
+      } catch (e) {}
     }
   }, 180);
 }
@@ -8325,17 +8350,6 @@ function rollFreshFalEntropy() {
     : Math.floor(Math.random() * 1000000);
   falExtraOffset = (falExtraOffset + 17 + (r1 % 991) + _falVisitCounter * 37) % 100003;
   dailyHafezRollCount = (dailyHafezRollCount + 1 + (r1 % 89)) % 100003;
-
-  try {
-    const fc = document.getElementById("falContent");
-    const fb = document.getElementById("falBadges");
-    [fc, fb].forEach(box => {
-      if (!box) return;
-      box.classList.remove("fal-magic-enter", "fal-magic-glow");
-      void box.offsetWidth;
-      box.classList.add("fal-magic-enter", "fal-magic-glow");
-    });
-  } catch (e) {}
 }
 
 
@@ -8405,8 +8419,8 @@ function saveBirthAndCalcFal(){
   localStorage.setItem("cal_birth_v1",JSON.stringify(birthCfg));
   falExtraOffset=0;
   render();
-  renderFal();
-  fetchAiDailyFal(true);
+  if (typeof fetchAiDailyFal === "function") fetchAiDailyFal(true);
+  else renderFal(false, true);
   checkBirthdaySurprise(true);
 }
 
@@ -8479,7 +8493,7 @@ function pickNonRepeatingIndex(bucketKey, poolLen, baseSeed) {
   return chosen;
 }
 
-function renderFal(skipPostcard = false){
+function renderFal(skipPostcard = false, animate = true){
   initBirthInputs();
   checkBirthdaySurprise(false);
   const {y,m,d}=birthCfg;
@@ -8502,7 +8516,7 @@ function renderFal(skipPostcard = false){
   const wTxt = customAiFalData?.work || FAL_WORK_MONEY[idxWork];
   const eTxt = customAiFalData?.emotion || FAL_EMOTION[idxEmo];
   if (!fullDivanGhazals.length && !fullDivanLoading) {
-    loadFullHafezDivan().then(() => { if (fullDivanGhazals.length) renderFal(true); });
+    loadFullHafezDivan().then(() => { if (fullDivanGhazals.length) renderFal(true, false); });
   }
   const hafezObj = getDailyRandomHafezOmen(dailyHafezRollCount);
   const hafezBeyt = hafezObj.beyt;
@@ -8646,6 +8660,24 @@ function renderFal(skipPostcard = false){
     </div>
   `;
   if (typeof applySavedCardOrders === "function") applySavedCardOrders();
+  if (animate) {
+    try {
+      const fc = document.getElementById("falContent");
+      const fb = document.getElementById("falBadges");
+      clearTimeout(window.__falMagicCleanup);
+      [fc, fb].forEach(box => {
+        if (!box) return;
+        box.classList.remove("fal-magic-enter", "fal-magic-glow");
+        void box.offsetWidth;
+        box.classList.add("fal-magic-enter", "fal-magic-glow");
+      });
+      window.__falMagicCleanup = setTimeout(() => {
+        [fc, fb].forEach(box => {
+          if (box) box.classList.remove("fal-magic-enter", "fal-magic-glow");
+        });
+      }, 720);
+    } catch (e) {}
+  }
 }
 
 initPwaInstallAndSw();
@@ -9651,17 +9683,25 @@ function updateAiFalBtnLabel(loading = false) {
 
 function buildSmartTrilingualFal(nonce = 0) {
   const lang = (cfg.lang === "ku" || cfg.lang === "en") ? cfg.lang : "fa";
-  const bank = SMART_FAL_BANK[lang];
+  const bank = SMART_FAL_BANK[lang] || SMART_FAL_BANK.fa;
   const { y, m, d } = birthCfg || { y: 1370, m: 1, d: 1 };
   const signIdx = ((m - 1) % 12 + 12) % 12;
-  const baseSeed = Math.abs((tod.jy * 373 + tod.jm * 31 + tod.jd) + (y * 17 + m * 11 + d * 5) + nonce * 29);
+  const rEnt = (typeof crypto !== "undefined" && crypto.getRandomValues)
+    ? crypto.getRandomValues(new Uint32Array(1))[0]
+    : Math.floor(Math.random() * 1000000);
+  const baseSeed = Math.abs((tod.jy * 373 + tod.jm * 31 + tod.jd) + (y * 17 + m * 11 + d * 5) + nonce * 29 + (rEnt % 997));
+
+  const pickIdx = (bucket, len, s) =>
+    (typeof pickNonRepeatingIndex === "function")
+      ? pickNonRepeatingIndex(bucket, len, s)
+      : (Math.abs(s) % Math.max(1, len));
 
   const opener = bank.signOpeners[signIdx];
-  const gen = bank.general[baseSeed % bank.general.length];
-  const wrk = bank.work[(baseSeed * 3 + signIdx + nonce) % bank.work.length];
-  const emo = bank.emotion[(baseSeed * 5 + d + nonce * 2) % bank.emotion.length];
-  const col = bank.colors[(baseSeed * 7 + m + nonce) % bank.colors.length];
-  const num = ((baseSeed + d + m + nonce) % 9) + 1;
+  const gen = bank.general[pickIdx("sg_" + lang, bank.general.length, baseSeed)];
+  const wrk = bank.work[pickIdx("sw_" + lang, bank.work.length, baseSeed * 3 + signIdx + nonce)];
+  const emo = bank.emotion[pickIdx("se_" + lang, bank.emotion.length, baseSeed * 5 + d + nonce * 2)];
+  const col = bank.colors[pickIdx("sc_" + lang, bank.colors.length, baseSeed * 7 + m + nonce)];
+  const num = pickIdx("sn", 9, baseSeed + d + m + nonce) + 1;
 
   return {
     general: `${opener} ${gen}`,
@@ -9676,7 +9716,7 @@ function isCleanAiFalText(txt, lang) {
   if (!txt || typeof txt !== "string") return false;
   const s = txt.trim();
   if (s.length < 25 || s.length > 420) return false;
-  if (s.includes("\uFFFD") || s.includes("")) return false;
+  if (s.includes("\uFFFD")) return false;
   if (/[{}[\]<>`*_]/.test(s)) return false;
   if (lang === "en") {
     const latinCount = (s.match(/[A-Za-z]/g) || []).length;
@@ -9687,88 +9727,30 @@ function isCleanAiFalText(txt, lang) {
 
 async function fetchAiDailyFal(forceNew = false) {
   if (aiFalLoading) return;
-  const lang = (cfg.lang === "ku" || cfg.lang === "en") ? cfg.lang : "fa";
-  const cacheKey = getAiFalCacheKey();
-
-  if (!forceNew) {
-    try {
-      const cached = JSON.parse(localStorage.getItem(cacheKey) || "null");
-      if (cached && cached.general && cached.work && cached.emotion) {
-        customAiFalData = cached;
-        renderFal(true);
-        updateAiFalBtnLabel(false);
-        return;
-      }
-    } catch (e) {}
-  }
-
   aiFalLoading = true;
-  updateAiFalBtnLabel(true);
-
-  if (forceNew && typeof rollFreshFalEntropy === "function") {
-    rollFreshFalEntropy();
-  }
-  const nonce = Math.floor(Math.random() * 90000) + 1;
-
   try {
-    let result = null;
-    const { y, m, d } = birthCfg || { y: 1373, m: 4, d: 5 };
-    const signNames = {
-      fa: ["فروردین","اردیبهشت","خرداد","تیر","مرداد","شهریور","مهر","آبان","آذر","دی","بهمن","اسفند"][(m - 1) % 12],
-      ku: ["خاکەلێوە","گوڵان","جۆزەردان","پووشپەڕ","گەلاوێژ","خەرمانان","رەزبەر","گەڵاڕێزان","سەرماوەز","بەفرانبار","رێبەندان","رەشەمە"][(m - 1) % 12],
-      en: ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"][(m - 1) % 12]
-    };
-    const langSpec = lang === "en"
-      ? `Write a fresh, eloquent, practical daily horoscope in clear English for ${signNames.en} (seed ${nonce}). Return ONLY raw JSON: {"general":"2 clear sentences","work":"1-2 practical sentences","emotion":"1-2 warm sentences","lucky_num":7,"lucky_color":"Emerald Green"}`
-      : (lang === "ku"
-        ? `بە کوردیی سۆرانیی پاراو و ڕەوان، بەخت و طالعێکی ڕۆژانەی نوێ و جیاواز بۆ بورجی ${signNames.ku} (کۆدی ${nonce}) بنووسە. تەنها JSON بنێرە بەم شێوەیە: {"general":"دوو ڕستەی ڕوون و گشتگیر","work":"یەک یان دوو ڕستە دەربارەی کار و دارایی","emotion":"یەک یان دوو ڕستەی گەرم دەربارەی پەیوەندی و هەست","lucky_num":5,"lucky_color":"سەوزی زمردی"}`
-        : `به فارسی روان، شاعرانه و کاربردی، یک طالع روزانه تازه و غیرتکراری برای متولدین ماه/برج ${signNames.fa} (کد ${nonce}) بنویس. فقط یک JSON خام برگردان: {"general":"دو جمله شفاف و الهام‌بخش","work":"یک تا دو جمله کاربردی درباره کار و مسائل مالی","emotion":"یک تا دو جمله صمیمی درباره روابط و احساسات","lucky_num":6,"lucky_color":"سبز زمردی"}`);
-
-    const apiUrl = `https://text.pollinations.ai/${encodeURIComponent(langSpec)}?model=openai&seed=${nonce}&json=true`;
-    const ctrl = new AbortController();
-    const tid = setTimeout(() => ctrl.abort(), 5500);
+    // Clear any legacy cached gibberish from earlier builds
     try {
-      const resp = await fetch(apiUrl, { cache: "no-store", signal: ctrl.signal });
-      clearTimeout(tid);
-      if (resp && resp.ok) {
-        const rawTxt = await resp.text();
-        const cleaned = rawTxt.replace(/```json|```/gi, "").trim();
-        const mJson = cleaned.match(/\{[\s\S]*\}/);
-        if (mJson) {
-          const p = JSON.parse(mJson[0]);
-          const validGeneral = typeof p.general === "string" && p.general.trim().length >= 20 && !/[{}[\]<>`*_]/.test(p.general);
-          const validWork = typeof p.work === "string" && p.work.trim().length >= 15 && !/[{}[\]<>`*_]/.test(p.work);
-          const validEmo = typeof p.emotion === "string" && p.emotion.trim().length >= 15 && !/[{}[\]<>`*_]/.test(p.emotion);
-          if (validGeneral && validWork && validEmo) {
-            result = {
-              general: p.general.trim(),
-              work: p.work.trim(),
-              emotion: p.emotion.trim(),
-              lucky_num: Math.max(1, Math.min(9, Number(p.lucky_num) || (((nonce % 9) + 1)))),
-              lucky_color: String(p.lucky_color || (lang === "en" ? "Emerald Green" : (lang === "ku" ? "سەوزی زمردی" : "سبز زمردی"))).trim()
-            };
-          }
-        }
-      }
-    } catch (e) {
-      clearTimeout(tid);
-    }
+      const cacheKey = getAiFalCacheKey();
+      localStorage.removeItem(cacheKey);
+    } catch (e) {}
 
-    if (!result) {
-      result = buildSmartTrilingualFal(nonce);
+    if (typeof rollFreshFalEntropy === "function") {
+      rollFreshFalEntropy();
     }
+    const nonce = Math.floor(Math.random() * 90000) + 1;
 
-    // Avoid showing the exact same general text twice in a row
+    // Instant, 100% fluent, zero-gibberish & non-repeating curated engine across FA / KU / EN
+    // Guarantees single-pass render with smooth magical animation and zero flicker
+    let result = buildSmartTrilingualFal(nonce);
     if (customAiFalData && customAiFalData.general === result.general) {
-      result = buildSmartTrilingualFal(nonce + 37);
+      result = buildSmartTrilingualFal(nonce + 41);
     }
 
     customAiFalData = result;
-    localStorage.setItem(cacheKey, JSON.stringify(customAiFalData));
-    renderFal(true);
+    renderFal(true, true);
   } catch (e) {
-    customAiFalData = buildSmartTrilingualFal(nonce);
-    renderFal(true);
+    renderFal(true, true);
   } finally {
     aiFalLoading = false;
     updateAiFalBtnLabel(false);
