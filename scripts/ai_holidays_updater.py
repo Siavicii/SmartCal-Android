@@ -143,45 +143,111 @@ def strip_html_to_lines(html_text):
             lines.append(clean)
     return lines
 
+def fetch_pnldev_calendar_for_year(year_int):
+    """Reliable JSON API fallback (accessible from GitHub Actions IPs, exact Jalali + Hijri holidays)."""
+    months_fa = [
+        "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
+        "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"
+    ]
+    headers = {
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        "Accept": "application/json",
+    }
+    lines = []
+    for m in range(1, 13):
+        url = f"https://pnldev.com/api/calender?year={year_int}&month={m}"
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=12) as resp:
+                payload = json.loads(resp.read().decode("utf-8", errors="ignore"))
+            days = payload.get("result") if isinstance(payload, dict) else None
+            if not isinstance(days, dict):
+                continue
+            for d_str, info in days.items():
+                if not isinstance(info, dict):
+                    continue
+                is_hol = bool(info.get("holiday"))
+                evs = info.get("event") or []
+                if isinstance(evs, list):
+                    for ev in evs:
+                        title = str(ev).strip()
+                        if not title:
+                            continue
+                        prefix = "[تعطیل رسمی] " if is_hol else ""
+                        lines.append(f"{prefix}{d_str} {months_fa[m - 1]}: {title}")
+        except Exception:
+            continue
+    return lines
+
+
+def fetch_github_persian_calendar_fallback():
+    """Secondary GitHub-hosted fallback (official persian-calendar events.json, zero 403 risk)."""
+    months_fa = [
+        "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
+        "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"
+    ]
+    url = "https://raw.githubusercontent.com/persian-calendar/persian-calendar/main/PersianCalendar/src/main/res/raw/events.json"
+    lines = []
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read().decode("utf-8", errors="ignore"))
+        for item in data.get("Persian Calendar", []):
+            if item.get("type") != "Iran":
+                continue
+            m = int(item.get("month", 0) or 0)
+            d = int(item.get("day", 0) or 0)
+            title = str(item.get("title", "")).strip()
+            if 1 <= m <= 12 and 1 <= d <= 31 and title:
+                prefix = "[تعطیل رسمی] " if item.get("holiday") else ""
+                lines.append(f"{prefix}{d} {months_fa[m - 1]}: {title}")
+    except Exception as e:
+        print(f"Warning: GitHub persian-calendar fallback failed: {e}")
+    return lines
+
+
 def fetch_time_ir_text_for_year(year_int, is_current_year=False):
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) SmartCal-Bot/70.0",
-        "Accept-Language": "fa-IR,fa;q=0.9",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "fa-IR,fa;q=0.9,en;q=0.8",
+        "Referer": "https://www.time.ir/",
     }
     collected = []
-    # 1) Try annual eventyear page with Year POST
-    try:
-        form = urllib.parse.urlencode({"Year": str(year_int)}).encode("utf-8")
-        req = urllib.request.Request(
-            TIME_IR_YEAR_URL,
-            data=form,
-            headers={**headers, "Content-Type": "application/x-www-form-urlencoded"},
-            method="POST"
-        )
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            raw = resp.read().decode("utf-8", errors="ignore")
-        # Mark holiday spans before stripping tags
-        raw = re.sub(r'class="[^"]*eventHoliday[^"]*"[^>]*>', '>[تعطیل رسمی] ', raw, flags=re.I)
-        lines = strip_html_to_lines(raw)
-        months = ("فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "امرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند")
-        event_lines = [ln for ln in lines if any(m in ln for m in months) and len(ln) < 220]
-        if event_lines:
-            collected.extend(event_lines[:180])
-    except Exception as e:
-        print(f"Warning: time.ir eventyear fetch for {year_int} failed: {e}")
 
-    # 2) For current year also fetch homepage (current month live occasions)
-    if is_current_year:
+    # 1) Try pnldev.com structured JSON API first (fast, accurate, GitHub Actions friendly)
+    pnl_lines = fetch_pnldev_calendar_for_year(year_int)
+    if pnl_lines:
+        print(f"Fetched {len(pnl_lines)} official events for {year_int} from pnldev.com API.")
+        collected.extend(pnl_lines)
+
+    # 2) Also try time.ir annual page (with clean browser headers) if pnldev returned little/nothing
+    if len(collected) < 20:
         try:
-            req = urllib.request.Request(TIME_IR_HOME, headers=headers)
+            form = urllib.parse.urlencode({"Year": str(year_int)}).encode("utf-8")
+            req = urllib.request.Request(
+                TIME_IR_YEAR_URL,
+                data=form,
+                headers={**headers, "Content-Type": "application/x-www-form-urlencoded"},
+                method="POST"
+            )
             with urllib.request.urlopen(req, timeout=20) as resp:
                 raw = resp.read().decode("utf-8", errors="ignore")
             raw = re.sub(r'class="[^"]*eventHoliday[^"]*"[^>]*>', '>[تعطیل رسمی] ', raw, flags=re.I)
             lines = strip_html_to_lines(raw)
-            start = next((i for i, l in enumerate(lines) if "مناسبت" in l), 0)
-            collected.extend(lines[start:start + 60])
+            months = ("فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "امرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند")
+            event_lines = [ln for ln in lines if any(m in ln for m in months) and len(ln) < 220]
+            if event_lines:
+                collected.extend(event_lines[:180])
         except Exception as e:
-            print(f"Warning: time.ir homepage fetch failed: {e}")
+            print(f"Warning: time.ir eventyear fetch for {year_int} failed: {e}")
+
+    # 3) Secondary GitHub-hosted fallback if both above failed
+    if len(collected) < 15:
+        gh_lines = fetch_github_persian_calendar_fallback()
+        if gh_lines:
+            print(f"Fetched {len(gh_lines)} events from GitHub persian-calendar fallback.")
+            collected.extend(gh_lines)
 
     # Deduplicate preserving order
     seen, unique = set(), []
@@ -189,7 +255,7 @@ def fetch_time_ir_text_for_year(year_int, is_current_year=False):
         if ln not in seen:
             seen.add(ln)
             unique.append(ln)
-    return "\n".join(unique[:200])
+    return "\n".join(unique[:260])
 
 def sync_time_ir_calendar(api_key, models, data, current_jy, today_j):
     target_years = [current_jy, current_jy + 1]
