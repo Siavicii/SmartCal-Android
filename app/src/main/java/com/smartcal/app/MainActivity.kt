@@ -113,10 +113,27 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private var isRequestingPermission = false
+    private var userLeftApp = false
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (!isRequestingPermission) {
+            userLeftApp = true
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        userLeftApp = false
+        isRequestingPermission = false
+    }
+
     override fun onStop() {
         super.onStop()
-        // Only switch launcher activity-alias when app truly moves to background (never during launch or config change)
-        if (!isChangingConfigurations) {
+        // Only switch launcher activity-alias when user truly leaves the app (never during first launch or permission dialogs)
+        if (!isChangingConfigurations && !isRequestingPermission && userLeftApp) {
+            userLeftApp = false
             try {
                 IconUpdater.updateTodayIcon(this)
             } catch (_: Exception) {}
@@ -197,6 +214,7 @@ class MainActivity : AppCompatActivity() {
                     ) != PackageManager.PERMISSION_GRANTED
                 ) {
                     pendingWebPermRequest = request
+                    isRequestingPermission = true
                     ActivityCompat.requestPermissions(
                         this@MainActivity,
                         arrayOf(Manifest.permission.RECORD_AUDIO),
@@ -262,6 +280,7 @@ class MainActivity : AppCompatActivity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        isRequestingPermission = false
         if (requestCode == 1004) {
             val granted = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
             runOnUiThread {
@@ -560,7 +579,8 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun requestCalendarPermission() {
             runOnUiThread {
-                ActivityCompat.requestPermissions(
+                isRequestingPermission = true
+                    ActivityCompat.requestPermissions(
                     this@MainActivity,
                     arrayOf(Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR),
                     1004
@@ -708,6 +728,7 @@ class MainActivity : AppCompatActivity() {
         fun requestNotificationPermission() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 runOnUiThread {
+                    isRequestingPermission = true
                     ActivityCompat.requestPermissions(
                         this@MainActivity,
                         arrayOf(Manifest.permission.POST_NOTIFICATIONS),
@@ -727,7 +748,8 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun requestLocationPermission() {
             runOnUiThread {
-                ActivityCompat.requestPermissions(
+                isRequestingPermission = true
+                    ActivityCompat.requestPermissions(
                     this@MainActivity,
                     arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
                     1012

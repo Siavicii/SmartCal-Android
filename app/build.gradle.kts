@@ -11,8 +11,8 @@ android {
         applicationId = "com.smartcal.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 114
-        versionName = "70.4"
+        versionCode = 115
+        versionName = "70.5"
     }
 
     signingConfigs {
