@@ -123,12 +123,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        userLeftApp = false
-        isRequestingPermission = false
-    }
-
     override fun onStop() {
         super.onStop()
         // Only switch launcher activity-alias when user truly leaves the app (never during first launch or permission dialogs)
@@ -416,6 +410,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        userLeftApp = false
+        isRequestingPermission = false
         // Do NOT toggle launcher activity-alias in onResume(); Android kills the foreground Activity on first install!
         // Only schedule the midnight alarm safely here; icon alias swap happens cleanly in onStop().
         try {
