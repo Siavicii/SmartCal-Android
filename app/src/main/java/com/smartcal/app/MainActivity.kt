@@ -439,6 +439,7 @@ class MainActivity : AppCompatActivity() {
         userLeftApp = false
         isRequestingPermission = false
         enableHighRefreshRate()
+        if (::webView.isInitialized) { try { webView.onResume() } catch (_: Exception) {} }
         // Do NOT toggle launcher activity-alias in onResume(); Android kills the foreground Activity on first install!
         // Only schedule the midnight alarm safely here; icon alias swap happens cleanly in onStop().
         try {
@@ -493,6 +494,19 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+
+
+        @JavascriptInterface
+        fun openExternalUrl(url: String) {
+            runOnUiThread {
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    startActivity(intent)
+                } catch (_: Exception) {}
+            }
+        }
 
         @JavascriptInterface
         fun showNativeToast(msg: String) {

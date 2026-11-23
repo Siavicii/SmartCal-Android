@@ -1,6 +1,6 @@
 {
-  "version": "70.8",
+  "version": "70.9",
   "updated_at": "2026-11-23",
-  "notes": "رفع مشکل به‌روزرسانی نشدن تاریخ آیکون پویا هنگام خروج با دکمه بازگشت (Back)",
+  "notes": "رفع کامل صفحه سفید و تأخیر هنگام بازگشت از پس‌زمینه (singleTask) و اصلاح دکمه دانلود مستقیم بروزرسانی در اندروید",
   "apk_url": "https://github.com/Siavicii/SmartCal-Android/releases/latest"
 }
