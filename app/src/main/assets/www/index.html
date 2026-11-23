@@ -4151,13 +4151,62 @@ function isDupEvTitle(list, title) {
   });
 }
 
+function hasLeadingEmoji(str) {
+  return /^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(String(str || "").trim());
+}
+
+function getEvEmoji(rawTitle, isHol) {
+  const s = String(rawTitle || "");
+  if (hasLeadingEmoji(s)) return "";
+  if (/نوروز|بهار|نەورۆز/.test(s)) return "🌸 ";
+  if (/یلدا|چله|یەڵدا/.test(s)) return "🍉 ";
+  if (/کریسمس|Christmas/.test(s)) return "🎄 ";
+  if (/ولنتاین|سپندارمذگان|عشق|Valentine/.test(s)) return "💝 ";
+  if (/شهادت|رحلت|تاسوعا|عاشورا|اربعین|انفال|کیمیاباران|درگذشت|شەهید|کۆچی/.test(s)) return "🖤 ";
+  if (/عید|ولادت|مبعث|ازدواج|غدیر|فطر|قربان|نیمه شعبان|جەژن|لەدایکبوون/.test(s)) return "✨ ";
+  if (/جشن|آذرگان|مهرگان|تیرگان|آبانگان|سده|بهمنگان|دیگان|فروردینگان|اردیبهشتگان|خردادگان|امردادگان|شهریورگان|خرم‌روز/.test(s)) return "🔥 ";
+  if (/زن|مادر|دختر|ژنان|دایک/.test(s)) return "🌷 ";
+  if (/پدر|مرد|باوک/.test(s)) return "👔 ";
+  if (/کودک|نوجوان|دانش‌آموز|منداڵ|قوتابی/.test(s)) return "🎒 ";
+  if (/دانشجو|معلم|پژوهش|کتاب|قلم|سواد|دانشگاه|زبان|مامۆستا|کتێب/.test(s)) return "📚 ";
+  if (/حافظ|سعدی|فردوسی|مولوی|خیام|عطار|شهریار|نظامی|پروین|شعر|ادب|سینما|هنر|تئاتر|موسیقی/.test(s)) return "🎭 ";
+  if (/پزشک|داروساز|سلامت|بهداشت|دیابت|سرطان|ایدز|خون|اهدای عضو|ماما|بیماری/.test(s)) return "🩺 ";
+  if (/طبیعت|درختکاری|محیط زیست|زمین|آب|گل|زیتون|کوهستان|سیزده‌بدر|جنگل|شاخ/.test(s)) return "🌿 ";
+  if (/خلیج فارس|دریایی|اقیانوس/.test(s)) return "🌊 ";
+  if (/ارتش|بسیج|هوایی|انتظامی|دفاع|خرمشهر|انقلاب|جمهوری|مجلس|قانون|نفت|کوروش|مشروطیت/.test(s)) return "🏛️ ";
+  if (/مهندس|حسابدار|بیمه|کارمند|کارگر|صنعت|فناوری|مالیات|صادرات|بانک|وکیل|کارآفرینی|کیفیت/.test(s)) return "💼 ";
+  if (/حمل‌ونقل|رانندگان|خلبان|گردشگری|پست/.test(s)) return "✈️ ";
+  if (/معلول|نیکوکاری|احسان|بهزیستی|سالمندان|حقوق بشر|صلح|آزادی|خشونت/.test(s)) return "🕊️ ";
+  if (/آتش‌نشانی|زلزله|ایمنی|هلال احمر/.test(s)) return "🛡️ ";
+  if (/ورزش|تربیت بدنی|شطرنج/.test(s)) return "🏅 ";
+  if (/عکاسی|خبرنگار|ارتباطات|چاپ/.test(s)) return "📷 ";
+  if (/جهانی|بین‌المللی|World|International/.test(s)) return "🌐 ";
+  if (isHol) return "🎉 ";
+  return "📌 ";
+}
+
 function getEv(y,m,d){
   const k=m+"-"+d,yk=y+"-"+m+"-"+d,r=[];
   const activeCountry = cfg?.countryCode || "IR";
-  if (activeCountry === "IR") {
-    if(BASE_EV[k])r.push(...BASE_EV[k]);
+  const showCountry = cfg?.showCountryHol !== false;
+  const showWorld = cfg?.showWorldDays !== false;
+
+  if (showCountry && activeCountry === "IR") {
+    if (BASE_EV[k]) {
+      BASE_EV[k].forEach(item => {
+        const t = String(item[0] || "");
+        const isStandaloneWorld = /^روز جهانی|^روز بین‌المللی/.test(t);
+        if (isStandaloneWorld && !showWorld) return;
+        if (!showWorld && t.includes(" و روز جهانی ")) {
+          const cleanPart = t.split(" و روز جهانی ")[0].trim();
+          if (cleanPart) r.push([cleanPart, item[1]]);
+          return;
+        }
+        r.push(item);
+      });
+    }
     const yrHol = (remoteIrHol && remoteIrHol[String(y)]) || IR_OFFICIAL_YEAR_HOL[String(y)];
-    if(yrHol && yrHol[k]) {
+    if (yrHol && yrHol[k]) {
       yrHol[k].forEach(item => {
         if (!isDupEvTitle(r, item[0])) r.push(item);
       });
@@ -4166,20 +4215,46 @@ function getEv(y,m,d){
       const emgList = getEmergencyHolidaysForDay(y, m, d);
       emgList.forEach(it => {
         const isH = (it.isHoliday !== false && it.scope !== "schools") ? 1 : 0;
-        const lbl = it.reason ? `${it.title} (${it.reason})` : it.title;
+        const lbl = it.reason ? `🚨 ${it.title} (${it.reason})` : `🚨 ${it.title}`;
         if (!r.some(ex => ex[0] === lbl)) r.push([lbl, isH]);
       });
     }
   }
-  if((activeCountry === "IR" || activeCountry === "IQ") && (cfg?.calType==="kurdish" || cfg?.lang==="ku") && KURDISH_EV[k]) r.push(...KURDISH_EV[k]);
-  if(customUserEv[yk])r.push(...customUserEv[yk]);
-  if (typeof getExtraWorldAndCountryEv === "function") {
-    const extra = getExtraWorldAndCountryEv(y,m,d);
-    extra.forEach(item => {
+
+  if (showCountry && (activeCountry === "IR" || activeCountry === "IQ") && (cfg?.calType==="kurdish" || cfg?.lang==="ku") && KURDISH_EV[k]) {
+    KURDISH_EV[k].forEach(item => {
       if (!isDupEvTitle(r, item[0])) r.push(item);
     });
   }
-  return r.map(e=>[trEvTitle(e[0]),e[1],e[2],e[3]]);
+
+  if (customUserEv[yk]) {
+    customUserEv[yk].forEach(item => r.push(item));
+  }
+
+  if (typeof getExtraWorldAndCountryEv === "function") {
+    const extra = getExtraWorldAndCountryEv(y,m,d);
+    extra.forEach(item => {
+      if (!isDupEvTitle(r, item[0])) {
+        r.push(item);
+      } else if (hasLeadingEmoji(item[0])) {
+        // Preserve emoji from WORLD_DAYS_GM if matched entry in r had none
+        const nNew = normEvForDedup(item[0]);
+        for (let i = 0; i < r.length; i++) {
+          if (!hasLeadingEmoji(r[i][0]) && normEvForDedup(r[i][0]) === nNew) {
+            const ico = item[0].match(/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\uFE0F]+/u);
+            if (ico) r[i] = [ico[0] + " " + r[i][0], r[i][1], r[i][2], r[i][3]];
+            break;
+          }
+        }
+      }
+    });
+  }
+
+  return r.map(e => {
+    const translated = trEvTitle(e[0]);
+    const prefix = hasLeadingEmoji(translated) ? "" : getEvEmoji(e[0], e[1]);
+    return [prefix + translated, e[1], e[2], e[3]];
+  });
 }
 
 async function addCustomEvent(){
