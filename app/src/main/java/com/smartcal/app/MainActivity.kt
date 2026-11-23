@@ -126,7 +126,7 @@ class MainActivity : AppCompatActivity() {
     override fun onStop() {
         super.onStop()
         // Only switch launcher activity-alias when user truly leaves the app (never during first launch or permission dialogs)
-        if (!isChangingConfigurations && !isRequestingPermission && userLeftApp) {
+        if (!isChangingConfigurations && !isRequestingPermission) {
             userLeftApp = false
             try {
                 IconUpdater.updateTodayIcon(this)
