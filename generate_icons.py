@@ -164,3 +164,91 @@ for ref in mipmap_refs:
         make_timeless_launcher_icon(night_p, dark_mode=True)
 
 print(f"Generated clean IRANSans Regular icons for {len(mipmap_refs)} refs (FA/KU/EN).")
+
+
+# ====== BUNDLE ALL APP FONTS LOCALLY INTO assets/www/fonts/ (v71.1) ======
+def bundle_local_web_fonts():
+    fonts_dir = "app/src/main/assets/www/fonts"
+    os.makedirs(fonts_dir, exist_ok=True)
+    font_specs = {
+        "Vazirmatn-Regular.woff2": [
+            "https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn-Regular.woff2",
+            "https://raw.githubusercontent.com/rastikerdar/vazirmatn/master/fonts/webfonts/Vazirmatn-Regular.woff2",
+        ],
+        "Vazirmatn-Bold.woff2": [
+            "https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn-Bold.woff2",
+            "https://raw.githubusercontent.com/rastikerdar/vazirmatn/master/fonts/webfonts/Vazirmatn-Bold.woff2",
+        ],
+        "IRANSans-Regular.ttf": [
+            "https://raw.githubusercontent.com/mhmmdq/IRANSans-Font/master/IRANSansWeb(FaNum).ttf",
+            "https://raw.githubusercontent.com/mhmmdq/IRANSans-Font/master/IRANSansWeb.ttf",
+            "https://raw.githubusercontent.com/Aryan1379/IranSans-Font/master/IRANSans(FaNum).ttf",
+            "https://raw.githubusercontent.com/mortezamasoumi/iran-sans-font/master/IRANSansMobile.ttf",
+        ],
+        "IRANSans-Bold.ttf": [
+            "https://raw.githubusercontent.com/mhmmdq/IRANSans-Font/master/IRANSansWeb(FaNum)_Bold.ttf",
+            "https://raw.githubusercontent.com/mhmmdq/IRANSans-Font/master/IRANSansWeb_Bold.ttf",
+            "https://raw.githubusercontent.com/Aryan1379/IranSans-Font/master/IRANSans(FaNum)_Bold.ttf",
+            "https://raw.githubusercontent.com/mortezamasoumi/iran-sans-font/master/IRANSansMobile_Bold.ttf",
+        ],
+        "Estedad-Regular.woff2": [
+            "https://cdn.jsdelivr.net/gh/aminabedi68/Estedad@master/fonts/webfonts/statics/Estedad-Regular.woff2",
+        ],
+        "Estedad-Bold.woff2": [
+            "https://cdn.jsdelivr.net/gh/aminabedi68/Estedad@master/fonts/webfonts/statics/Estedad-Bold.woff2",
+        ],
+        "Sahel-Regular.woff2": [
+            "https://cdn.jsdelivr.net/gh/rastikerdar/sahel-font@v3.4.0/dist/Sahel.woff2",
+        ],
+        "Sahel-Bold.woff2": [
+            "https://cdn.jsdelivr.net/gh/rastikerdar/sahel-font@v3.4.0/dist/Sahel-Bold.woff2",
+        ],
+        "Dastkhat-Regular.woff2": [
+            "https://cdn.jsdelivr.net/gh/dastyar-io/dastkhat-font@main/dist/Dastkhat-Regular.woff2",
+            "https://raw.githubusercontent.com/dastyar-io/dastkhat-font/main/dist/Dastkhat-Regular.woff2",
+        ],
+        "Dastkhat-Bold.woff2": [
+            "https://cdn.jsdelivr.net/gh/dastyar-io/dastkhat-font@main/dist/Dastkhat-Bold.woff2",
+            "https://raw.githubusercontent.com/dastyar-io/dastkhat-font/main/dist/Dastkhat-Bold.woff2",
+        ],
+        "Inter-Regular.woff2": [
+            "https://cdn.jsdelivr.net/gh/rsms/inter@v4.0/docs/font-files/Inter-Regular.woff2",
+            "https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.16/files/inter-latin-400-normal.woff2",
+        ],
+        "Inter-Bold.woff2": [
+            "https://cdn.jsdelivr.net/gh/rsms/inter@v4.0/docs/font-files/Inter-Bold.woff2",
+            "https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.16/files/inter-latin-700-normal.woff2",
+        ],
+        "NotoSansArabic-Regular.ttf": [
+            "https://raw.githubusercontent.com/google/fonts/main/ofl/notosansarabic/NotoSansArabic%5Bwdth%2Cwght%5D.ttf",
+        ],
+        "NotoSansArabic-Bold.ttf": [
+            "https://raw.githubusercontent.com/google/fonts/main/ofl/notosansarabic/NotoSansArabic%5Bwdth%2Cwght%5D.ttf",
+        ],
+        "NotoNaskhArabic-Regular.ttf": [
+            "https://raw.githubusercontent.com/google/fonts/main/ofl/notonaskharabic/NotoNaskhArabic%5Bwght%5D.ttf",
+        ],
+        "NotoNaskhArabic-Bold.ttf": [
+            "https://raw.githubusercontent.com/google/fonts/main/ofl/notonaskharabic/NotoNaskhArabic%5Bwght%5D.ttf",
+        ],
+    }
+    ok_count = 0
+    for fname, urls in font_specs.items():
+        out_p = os.path.join(fonts_dir, fname)
+        if os.path.exists(out_p) and os.path.getsize(out_p) > 5000:
+            ok_count += 1
+            continue
+        for u in urls:
+            try:
+                data = _download_bytes(u, timeout=20)
+                if len(data) > 5000:
+                    with open(out_p, "wb") as f:
+                        f.write(data)
+                    ok_count += 1
+                    print(f"Bundled local font: {fname} ({len(data)} bytes)")
+                    break
+            except Exception:
+                continue
+    print(f"Local offline web fonts bundled: {ok_count}/{len(font_specs)}")
+
+bundle_local_web_fonts()

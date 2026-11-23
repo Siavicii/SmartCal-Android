@@ -17,7 +17,114 @@
 <link rel="manifest" id="dynManifest" href="./manifest.json">
 <title>Smart Cal - تقویم هوشمند جامع</title>
 <style>
-/* External fonts loaded asynchronously after first paint (v71.0) */
+/* Local Offline Bundled Fonts (v71.1) — Instant 0ms load, zero FOUT */
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('./fonts/Vazirmatn-Regular.woff2') format('woff2'),
+       url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn-Regular.woff2') format('woff2');
+  font-weight: 400 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('./fonts/Vazirmatn-Bold.woff2') format('woff2'),
+       url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn-Bold.woff2') format('woff2');
+  font-weight: 600 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IRANSans';
+  src: url('./fonts/IRANSans-Regular.ttf') format('truetype'),
+       url('https://raw.githubusercontent.com/mhmmdq/IRANSans-Font/master/IRANSansWeb(FaNum).ttf') format('truetype');
+  font-weight: 400 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IRANSans';
+  src: url('./fonts/IRANSans-Bold.ttf') format('truetype'),
+       url('./fonts/IRANSans-Regular.ttf') format('truetype');
+  font-weight: 600 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Estedad';
+  src: url('./fonts/Estedad-Regular.woff2') format('woff2'),
+       url('https://cdn.jsdelivr.net/gh/aminabedi68/Estedad@master/fonts/webfonts/statics/Estedad-Regular.woff2') format('woff2');
+  font-weight: 400 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Estedad';
+  src: url('./fonts/Estedad-Bold.woff2') format('woff2'),
+       url('https://cdn.jsdelivr.net/gh/aminabedi68/Estedad@master/fonts/webfonts/statics/Estedad-Bold.woff2') format('woff2');
+  font-weight: 600 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Sahel';
+  src: url('./fonts/Sahel-Regular.woff2') format('woff2'),
+       url('https://cdn.jsdelivr.net/gh/rastikerdar/sahel-font@v3.4.0/dist/Sahel.woff2') format('woff2');
+  font-weight: 400 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Sahel';
+  src: url('./fonts/Sahel-Bold.woff2') format('woff2'),
+       url('https://cdn.jsdelivr.net/gh/rastikerdar/sahel-font@v3.4.0/dist/Sahel-Bold.woff2') format('woff2');
+  font-weight: 600 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('./fonts/Inter-Regular.woff2') format('woff2');
+  font-weight: 400 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('./fonts/Inter-Bold.woff2') format('woff2');
+  font-weight: 600 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Noto Sans Arabic';
+  src: url('./fonts/NotoSansArabic-Regular.ttf') format('truetype');
+  font-weight: 400 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Noto Sans Arabic';
+  src: url('./fonts/NotoSansArabic-Bold.ttf') format('truetype');
+  font-weight: 600 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Noto Naskh Arabic';
+  src: url('./fonts/NotoNaskhArabic-Regular.ttf') format('truetype');
+  font-weight: 400 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Noto Naskh Arabic';
+  src: url('./fonts/NotoNaskhArabic-Bold.ttf') format('truetype');
+  font-weight: 600 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 
 :root{
   --bg:#F4F6FA;--card:#FFFFFF;--sub:#EBF0F7;--pri:#1B6EF3;--pri-bg:rgba(27,110,243,0.14);--onpri:#FFFFFF;
@@ -577,7 +684,8 @@ body.atm-clear { background-image: radial-gradient(circle at 88% 8%, rgba(250,20
 
 @font-face {
   font-family: 'Dastkhat';
-  src: url('https://cdn.jsdelivr.net/gh/dastyar-io/dastkhat-font@main/dist/Dastkhat-Regular.woff2') format('woff2'),
+  src: url('./fonts/Dastkhat-Regular.woff2') format('woff2'),
+       url('https://cdn.jsdelivr.net/gh/dastyar-io/dastkhat-font@main/dist/Dastkhat-Regular.woff2') format('woff2'),
        url('https://raw.githubusercontent.com/dastyar-io/dastkhat-font/main/dist/Dastkhat-Regular.woff2') format('woff2'),
        url('https://cdn.jsdelivr.net/gh/dastyar-io/dastkhat-font@main/fonts/woff2/Dastkhat-Regular.woff2') format('woff2');
   font-weight: 400;
@@ -586,7 +694,8 @@ body.atm-clear { background-image: radial-gradient(circle at 88% 8%, rgba(250,20
 }
 @font-face {
   font-family: 'Dastkhat';
-  src: url('https://cdn.jsdelivr.net/gh/dastyar-io/dastkhat-font@main/dist/Dastkhat-Bold.woff2') format('woff2'),
+  src: url('./fonts/Dastkhat-Bold.woff2') format('woff2'),
+       url('https://cdn.jsdelivr.net/gh/dastyar-io/dastkhat-font@main/dist/Dastkhat-Bold.woff2') format('woff2'),
        url('https://raw.githubusercontent.com/dastyar-io/dastkhat-font@main/dist/Dastkhat-Bold.woff2') format('woff2'),
        url('https://cdn.jsdelivr.net/gh/dastyar-io/dastkhat-font@main/fonts/woff2/Dastkhat-Bold.woff2') format('woff2');
   font-weight: 700;
@@ -2943,6 +3052,7 @@ setTimeout(function(){ if (window.__dismissSmartSplash) window.__dismissSmartSpl
       <b style="font-size:12px;color:var(--sec)">🔤 فونت یکپارچه اپلیکیشن (هماهنگ با فارسی، کوردی و انگلیسی)</b>
       <select id="setFont" style="margin-top:5px" onchange="saveSettings()">
         <option value="vazirmatn">۱. وزیرمتن + اینتر (Vazirmatn & Inter - مدرن و استاندارد)</option>
+        <option value="iransans">۲. ایران‌سنس + اینتر (IRANSans & Inter - شیک، یکدست و چندزبانه)</option>
         <option value="estedad">۲. استعداد + جاکارتا (Estedad & Jakarta - هندسی و لوکس)</option>
         <option value="sahel">۳. ساحل + روبیک (Sahel & Rubik - نرم و خوانا)</option>
         <option value="notosans">۴. نوتو سنس کوردی/فارسی (Noto Sans Arabic - فوق‌العاده تمیز)</option>
@@ -3076,7 +3186,7 @@ setTimeout(function(){ if (window.__dismissSmartSplash) window.__dismissSmartSpl
 <script>
 // Self-healing cache & Service Worker updater for v19
 (function(){
-  const VER = "v71.0";
+  const VER = "v71.1";
   if (localStorage.getItem("smartcal_sw_ver") !== VER) {
     localStorage.setItem("smartcal_sw_ver", VER);
     if ("caches" in window) {
@@ -3153,6 +3263,7 @@ const trEvTitle=t=>{
 
 const FONT_STACKS={
   vazirmatn:"'Vazirmatn','Inter',system-ui,-apple-system,sans-serif",
+  iransans:"'IRANSans','Inter','Vazirmatn','Noto Sans Arabic',system-ui,-apple-system,sans-serif",
   estedad:"'Estedad','Plus Jakarta Sans','Vazirmatn',system-ui,sans-serif",
   sahel:"'Sahel','Rubik','Vazirmatn',system-ui,sans-serif",
   notosans:"'Noto Sans Arabic','Inter','Vazirmatn',system-ui,sans-serif",
@@ -8888,6 +8999,7 @@ setTimeout(() => {
 
   const FONT_PREVIEW_MAP = {
     vazirmatn: "'Vazirmatn','Inter',sans-serif",
+    iransans: "'IRANSans','Inter','Vazirmatn','Noto Sans Arabic',sans-serif",
     estedad: "'Estedad','Plus Jakarta Sans',sans-serif",
     sahel: "'Sahel','Rubik',sans-serif",
     noto: "'Noto Sans Arabic','Inter',sans-serif",
@@ -9844,7 +9956,7 @@ setTimeout(() => { try { applySavedCardOrders(); } catch (e) {} }, 60);
 
 
 // ====== IN-APP SMART UPDATE NOTIFIER (v70.3) ======
-const APP_CURRENT_VER = "71.0";
+const APP_CURRENT_VER = "71.1";
 let _pendingUpdateInfo = null;
 
 function cmpSemVer(a, b) {
@@ -10026,25 +10138,7 @@ setTimeout(() => {
 
 
 
-// Non-blocking async font loader (v71.0) — never blocks cold start!
-setTimeout(() => {
-  try {
-    const fontUrls = [
-      "https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css",
-      "https://cdn.jsdelivr.net/gh/rastikerdar/sahel-font@v3.4.0/dist/font-face.css",
-      "https://cdn.jsdelivr.net/gh/aminabedi68/Estedad@master/Estedad-font-face.css",
-      "https://fonts.googleapis.com/css2?family=Inter:wght@500;700;900&family=Noto+Sans+Arabic:wght@500;700;800&display=swap"
-    ];
-    fontUrls.forEach(href => {
-      const l = document.createElement("link");
-      l.rel = "stylesheet";
-      l.href = href;
-      l.media = "print";
-      l.onload = function() { this.media = "all"; };
-      document.head.appendChild(l);
-    });
-  } catch (e) {}
-}, 1200);
+
 
 </script>
 
