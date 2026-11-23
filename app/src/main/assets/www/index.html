@@ -3228,7 +3228,7 @@ setTimeout(function(){ if (window.__dismissSmartSplash) window.__dismissSmartSpl
 <script>
 // Self-healing cache & Service Worker updater for v19
 (function(){
-  const VER = "v71.8";
+  const VER = "v71.9";
   if (localStorage.getItem("smartcal_sw_ver") !== VER) {
     localStorage.setItem("smartcal_sw_ver", VER);
     if ("caches" in window) {
@@ -10276,7 +10276,7 @@ setTimeout(() => { try { applySavedCardOrders(); } catch (e) {} }, 60);
 
 
 // ====== IN-APP SMART UPDATE NOTIFIER (v70.3) ======
-const APP_CURRENT_VER = "71.8";
+const APP_CURRENT_VER = "71.9";
 let _pendingUpdateInfo = null;
 
 function cmpSemVer(a, b) {
@@ -10413,6 +10413,28 @@ checkForAppUpdate = async function(manual = false) {
   localStorage.setItem(UPD_LAST_CHK_KEY, String(Date.now()));
   return _origCheckForAppUpdate(manual);
 };
+// Reset stale dismissal state when app version changes after an upgrade
+try {
+  const prevSeenVer = localStorage.getItem("smartcal_last_app_ver");
+  if (prevSeenVer && prevSeenVer !== APP_CURRENT_VER) {
+    localStorage.removeItem("smartcal_upd_dismiss_ver");
+    localStorage.removeItem("smartcal_upd_dismiss_ts");
+  }
+  localStorage.setItem("smartcal_last_app_ver", APP_CURRENT_VER);
+} catch (e) {}
+
+let _updCheckInFlight = false;
+const _origCheckForAppUpdate2 = checkForAppUpdate;
+checkForAppUpdate = async function(manual = false) {
+  if (_updCheckInFlight) return false;
+  _updCheckInFlight = true;
+  try {
+    return await _origCheckForAppUpdate2(manual);
+  } finally {
+    _updCheckInFlight = false;
+  }
+};
+
 setTimeout(() => { try { checkForAppUpdate(false); } catch (e) {} }, 4500);
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState !== "visible") return;

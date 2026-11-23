@@ -367,20 +367,10 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 val currentVer = packageManager.getPackageInfo(packageName, 0).versionName ?: "0"
+                // Unified update notification is handled cleanly by the in-app banner (#appUpdateBanner)
+                // to avoid showing two overlapping update prompts after upgrading.
                 if (latestTag.isNotEmpty() && isNewerVersion(latestTag, currentVer) && apkUrl.isNotEmpty()) {
-                    runOnUiThread {
-                        if (!isFinishing && !isDestroyed) {
-                            AlertDialog.Builder(this)
-                                .setTitle("بروزرسانی جدید (نسخه $latestTag)")
-                                .setMessage("نسخه جدید تقویم هوشمند منتشر شده است. آیا مایل به دانلود و نصب آن هستید؟")
-                                .setPositiveButton("دانلود و نصب") { _, _ ->
-                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(apkUrl))
-                                    startActivity(intent)
-                                }
-                                .setNegativeButton("بعداً", null)
-                                .show()
-                        }
-                    }
+                    // Handled by checkForAppUpdate() inside WebView
                 }
              else if (manual) {
                     runOnUiThread {
