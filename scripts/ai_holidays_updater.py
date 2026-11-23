@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 """
-SmartCal AI Emergency Holiday Scanner
-Fetches official Iranian news RSS feeds, discovers available Gemini models
-automatically via ListModels, analyzes confirmed closure announcements,
-and updates holidays.json.
+SmartCal AI Calendar & Emergency Holiday Updater (v70+)
+1) Automatically checks time.ir for the current Jalali year and next year (امسال و سال آینده)
+   and reconciles official holidays & occasions in holidays.json.
+2) Scans official Iranian news RSS feeds every 3 hours and detects confirmed emergency
+   closures via Gemini API (auto-discovering available models via ListModels).
 """
 import datetime
 import json
 import os
 import re
 import sys
+import time
 import urllib.error
+import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 
@@ -25,6 +28,10 @@ KEYWORDS = [
     "تعطیل", "تعطیلی", "غیرحضوری", "دورکاری", "آلودگی هوا",
     "برودت هوا", "مدیریت مصرف", "ادارات", "مدارس", "کمیته اضطرار"
 ]
+
+TIME_IR_HOME = "https://www.time.ir/"
+TIME_IR_YEAR_URL = "https://www.time.ir/fa/eventyear-%D8%AA%D9%82%D9%88%DB%8C%D9%85-%D8%B3%D8%A7%D9%84%DB%8C%D8%A7%D9%86%D9%87"
+TIME_IR_CHECK_INTERVAL_SEC = 7 * 86400  # Re-verify weekly (or immediately on manual run / missing year)
 
 # Minimal Jalali conversion (Gregorian -> Jalali)
 def div(a, b): return int(a / b)
@@ -76,9 +83,190 @@ def g2j(gy, gm, gd):
         k += 1
     return jy, 7 + div(k, 30), mod(k, 30) + 1
 
+def discover_gemini_models(api_key):
+    url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
+    req = urllib.request.Request(url, method="GET")
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+    excluded = ("image", "audio", "tts", "embedding", "vision")
+    candidates = []
+    for m in data.get("models", []):
+        name = m.get("name", "")
+        methods = m.get("supportedGenerationMethods", [])
+        low = name.lower()
+        if "generateContent" in methods and "gemini" in low and not any(x in low for x in excluded):
+            candidates.append(name.replace("models/", ""))
+    lite_models = [c for c in candidates if "flash-lite" in c.lower()]
+    flash_models = [c for c in candidates if "flash" in c.lower() and c not in lite_models]
+    other_models = [c for c in candidates if c not in lite_models and c not in flash_models]
+    ordered = lite_models + flash_models + other_models
+    print("Available Gemini models:", ", ".join(ordered[:6]))
+    return ordered
+
+def call_gemini_json(api_key, models, prompt):
+    payload = json.dumps({
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"temperature": 0.1, "responseMimeType": "application/json"}
+    }).encode("utf-8")
+
+    last_err = None
+    for model in models[:5]:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
+        try:
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                res = json.loads(resp.read().decode("utf-8"))
+            print(f"Using Gemini model: {model}")
+            raw_text = res["candidates"][0]["content"]["parts"][0]["text"].strip()
+            raw_text = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw_text)
+            return json.loads(raw_text)
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8", errors="ignore")[:200]
+            last_err = f"{model} -> HTTP {e.code}: {body}"
+            print(f"Model {model} failed: HTTP {e.code}, trying next...")
+            continue
+        except Exception as e:
+            last_err = f"{model} -> {e}"
+            print(f"Model {model} error: {e}, trying next...")
+            continue
+    raise RuntimeError(f"Failed on discovered models. Last: {last_err}")
+
+def strip_html_to_lines(html_text):
+    # Remove scripts/styles and convert tags to line breaks
+    txt = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", html_text, flags=re.S | re.I)
+    txt = re.sub(r"</?(li|div|p|tr|br|h[1-6])[^>]*>", "\n", txt, flags=re.I)
+    txt = re.sub(r"<[^>]+>", " ", txt)
+    lines = []
+    for ln in txt.splitlines():
+        clean = re.sub(r"\s+", " ", ln).strip()
+        if clean:
+            lines.append(clean)
+    return lines
+
+def fetch_time_ir_text_for_year(year_int, is_current_year=False):
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) SmartCal-Bot/70.0",
+        "Accept-Language": "fa-IR,fa;q=0.9",
+    }
+    collected = []
+    # 1) Try annual eventyear page with Year POST
+    try:
+        form = urllib.parse.urlencode({"Year": str(year_int)}).encode("utf-8")
+        req = urllib.request.Request(
+            TIME_IR_YEAR_URL,
+            data=form,
+            headers={**headers, "Content-Type": "application/x-www-form-urlencoded"},
+            method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            raw = resp.read().decode("utf-8", errors="ignore")
+        # Mark holiday spans before stripping tags
+        raw = re.sub(r'class="[^"]*eventHoliday[^"]*"[^>]*>', '>[تعطیل رسمی] ', raw, flags=re.I)
+        lines = strip_html_to_lines(raw)
+        months = ("فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "امرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند")
+        event_lines = [ln for ln in lines if any(m in ln for m in months) and len(ln) < 220]
+        if event_lines:
+            collected.extend(event_lines[:180])
+    except Exception as e:
+        print(f"Warning: time.ir eventyear fetch for {year_int} failed: {e}")
+
+    # 2) For current year also fetch homepage (current month live occasions)
+    if is_current_year:
+        try:
+            req = urllib.request.Request(TIME_IR_HOME, headers=headers)
+            with urllib.request.urlopen(req, timeout=20) as resp:
+                raw = resp.read().decode("utf-8", errors="ignore")
+            raw = re.sub(r'class="[^"]*eventHoliday[^"]*"[^>]*>', '>[تعطیل رسمی] ', raw, flags=re.I)
+            lines = strip_html_to_lines(raw)
+            start = next((i for i, l in enumerate(lines) if "مناسبت" in l), 0)
+            collected.extend(lines[start:start + 60])
+        except Exception as e:
+            print(f"Warning: time.ir homepage fetch failed: {e}")
+
+    # Deduplicate preserving order
+    seen, unique = set(), []
+    for ln in collected:
+        if ln not in seen:
+            seen.add(ln)
+            unique.append(ln)
+    return "\n".join(unique[:200])
+
+def sync_time_ir_calendar(api_key, models, data, current_jy, today_j):
+    target_years = [current_jy, current_jy + 1]
+    meta = data.setdefault("_meta", {})
+    last_ts = int(meta.get("last_time_ir_check_ts", 0) or 0)
+    now_ts = int(time.time())
+    is_manual = (os.environ.get("GITHUB_EVENT_NAME", "") == "workflow_dispatch")
+    missing_year = any(str(y) not in data or not data.get(str(y)) for y in target_years)
+
+    if not is_manual and not missing_year and (now_ts - last_ts) < TIME_IR_CHECK_INTERVAL_SEC:
+        print(f"time.ir check skipped (last checked on {meta.get('last_time_ir_check', 'unknown')}).")
+        return False
+
+    print(f"Checking time.ir for years {target_years} (امسال و سال آینده)...")
+    changed = False
+    checked_ok = []
+
+    for yr in target_years:
+        yr_str = str(yr)
+        snippet = fetch_time_ir_text_for_year(yr, is_current_year=(yr == current_jy))
+        if not snippet or len(snippet) < 80:
+            print(f"Skipping time.ir AI parse for {yr_str}: insufficient content fetched.")
+            continue
+
+        prompt = f"""
+متن زیر از سایت رسمی time.ir برای سال {yr_str} شمسی استخراج شده است:
+
+{snippet[:14000]}
+
+وظیفه تو:
+فقط **تعطیلات رسمی متغیر (غیر از تعطیلات ثابت شمسی مثل ۱ تا ۴ فروردین، ۱۲ و ۱۳ فروردین، ۱۴ و ۱۵ خرداد، ۲۲ بهمن و ۲۹ اسفند)** و **مناسبت‌های مهم متغیر (مثل ولادت حضرت فاطمه/روز مادر، ولادت حضرت معصومه/روز دختر، ولادت امام رضا، روز ازدواج، روز عرفه)** را که در متن time.ir برای سال {yr_str} آمده است استخراج کن.
+
+خروجی را دقیقاً به صورت یک شیء JSON معتبر (بدون متن اضافی) با کلید `"ماه-روز"` (بدون صفر اضافی، مثل `"9-9"` یا `"10-2"`) برگردان:
+{{
+  "10-2": [["ولادت امام علی (ع) و روز پدر (تعطیل رسمی)", 1]],
+  "9-9": [["ولادت حضرت فاطمه زهرا (س) و روز زن و مادر", 0]]
+}}
+قوانین مهم:
+- عدد دوم آرایه فقط برای **تعطیل رسمی واقعی** برابر `1` و برای مناسبت‌های غیرتعطیل برابر `0` باشد.
+- فقط مواردی که با اطمینان در متن بالا برای سال {yr_str} دیده می‌شوند را برگردان؛ اگر متن ناقص بود شیء خالی `{{}}` برگردان.
+"""
+        try:
+            parsed = call_gemini_json(api_key, models, prompt)
+        except Exception as e:
+            print(f"time.ir Gemini check error for {yr_str}: {e}")
+            continue
+
+        if isinstance(parsed, dict) and parsed:
+            yr_map = data.setdefault(yr_str, {})
+            added_cnt = 0
+            for dk, ev_list in parsed.items():
+                if not re.match(r"^\d{1,2}-\d{1,2}$", str(dk)) or not isinstance(ev_list, list):
+                    continue
+                cur = yr_map.setdefault(str(dk), [])
+                for ev in ev_list:
+                    if isinstance(ev, list) and len(ev) >= 2 and isinstance(ev[0], str):
+                        title = ev[0].strip()
+                        is_hol = 1 if int(ev[1]) == 1 else 0
+                        if title and not any(x[0] == title for x in cur):
+                            cur.append([title, is_hol])
+                            added_cnt += 1
+                            changed = True
+            print(f"time.ir check for {yr_str}: merged {added_cnt} new/verified items.")
+            checked_ok.append(yr_str)
+
+    if checked_ok:
+        meta["source"] = "time.ir + SmartCal AI"
+        meta["checked_years"] = [str(y) for y in target_years]
+        meta["last_time_ir_check"] = today_j
+        meta["last_time_ir_check_ts"] = now_ts
+        changed = True
+
+    return changed
+
 def fetch_relevant_news():
     items = []
-    headers = {"User-Agent": "Mozilla/5.0 (SmartCal-AI-Bot/1.0)"}
+    headers = {"User-Agent": "Mozilla/5.0 (SmartCal-AI-Bot/70.0)"}
     for source_name, url in RSS_FEEDS:
         try:
             req = urllib.request.Request(url, headers=headers)
@@ -95,37 +283,45 @@ def fetch_relevant_news():
             print(f"Warning: failed to fetch {source_name}: {e}")
     return items[:25]
 
-def discover_gemini_models(api_key):
-    url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
-    req = urllib.request.Request(url, method="GET")
-    with urllib.request.urlopen(req, timeout=20) as resp:
-        data = json.loads(resp.read().decode("utf-8"))
-    excluded = ("image", "audio", "tts", "embedding", "vision")
-    candidates = []
-    for m in data.get("models", []):
-        name = m.get("name", "")
-        methods = m.get("supportedGenerationMethods", [])
-        low = name.lower()
-        if "generateContent" in methods and "gemini" in low and not any(x in low for x in excluded):
-            candidates.append(name.replace("models/", ""))
-    # Prioritize fast flash-lite models first, then flash, then others
-    lite_models = [c for c in candidates if "flash-lite" in c.lower()]
-    flash_models = [c for c in candidates if "flash" in c.lower() and c not in lite_models]
-    other_models = [c for c in candidates if c not in lite_models and c not in flash_models]
-    ordered = lite_models + flash_models + other_models
-    print("Available Gemini models:", ", ".join(ordered[:6]))
-    return ordered
+def main():
+    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        print("GEMINI_API_KEY secret is not set. Skipping AI scan.")
+        return
 
-def call_gemini(api_key, news_lines, today_jalali, today_greg):
-    models = discover_gemini_models(api_key)
-    if not models:
-        raise RuntimeError("No generateContent-capable Gemini models found for this API key.")
+    tehran_now = datetime.datetime.utcnow() + datetime.timedelta(hours=3, minutes=30)
+    jy, jm, jd = g2j(tehran_now.year, tehran_now.month, tehran_now.day)
+    today_j = f"{jy}-{jm}-{jd}"
+    today_g = tehran_now.strftime("%Y-%m-%d")
 
-    prompt = f"""
-امروز {today_jalali} شمسی (برابر با {today_greg} میلادی) است.
+    hol_path = "holidays.json"
+    with open(hol_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    try:
+        models = discover_gemini_models(api_key)
+        if not models:
+            print("No available Gemini models found.")
+            return
+    except Exception as e:
+        print(f"Gemini ListModels error: {e}")
+        return
+
+    changed = False
+
+    # Step 1: Check time.ir for current year and next year (امسال و سال آینده)
+    if sync_time_ir_calendar(api_key, models, data, jy, today_j):
+        changed = True
+
+    # Step 2: Scan Iranian news RSS feeds for confirmed emergency closures
+    news = fetch_relevant_news()
+    print(f"Fetched {len(news)} relevant headlines on {today_j}")
+    if news:
+        prompt = f"""
+امروز {today_j} شمسی (برابر با {today_g} میلادی) است.
 تیتر و خلاصه خبرهای زیر از خبرگزاری‌های رسمی ایران استخراج شده است:
 
-{chr(10).join(news_lines)}
+{chr(10).join(news)}
 
 وظیفه تو:
 فقط و فقط اطلاعیه‌های **قطعی و رسمی تعطیلی اضطراری** (ادارات، بانک‌ها، مدارس یا کل کشور) را که برای امروز یا روزهای آینده صادر شده‌اند استخراج کن.
@@ -150,80 +346,33 @@ def call_gemini(api_key, news_lines, today_jalali, today_greg):
 - `isHoliday` برای `"all"` و `"offices"` برابر `true` و برای `"schools"` برابر `false` باشد.
 - اگر تعطیلی سراسری است، `cities` برابر `["سراسری"]` باشد؛ در غیر این صورت نام شهرها یا استان‌های مشمول را بنویس.
 """
-    payload = json.dumps({
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.1, "responseMimeType": "application/json"}
-    }).encode("utf-8")
-
-    last_err = None
-    for model in models[:5]:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
-        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
         try:
-            with urllib.request.urlopen(req, timeout=60) as resp:
-                res = json.loads(resp.read().decode("utf-8"))
-            print(f"Using Gemini model: {model}")
-            raw_text = res["candidates"][0]["content"]["parts"][0]["text"].strip()
-            raw_text = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw_text)
-            parsed = json.loads(raw_text)
-            return parsed if isinstance(parsed, list) else []
-        except urllib.error.HTTPError as e:
-            body = e.read().decode("utf-8", errors="ignore")[:200]
-            last_err = f"{model} -> HTTP {e.code}: {body}"
-            print(f"Model {model} failed: HTTP {e.code}, trying next...")
-            continue
+            detected = call_gemini_json(api_key, models, prompt)
+            if not isinstance(detected, list):
+                detected = []
         except Exception as e:
-            last_err = f"{model} -> {e}"
-            print(f"Model {model} error: {e}, trying next...")
-            continue
-    raise RuntimeError(f"Failed on discovered models. Last: {last_err}")
+            print(f"Gemini emergency scan error: {e}")
+            detected = []
 
-def main():
-    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
-    if not api_key:
-        print("GEMINI_API_KEY secret is not set. Skipping AI scan.")
-        return
+        print(f"AI detected {len(detected)} confirmed closures.")
+        emg = data.setdefault("emergency", {})
 
-    tehran_now = datetime.datetime.utcnow() + datetime.timedelta(hours=3, minutes=30)
-    jy, jm, jd = g2j(tehran_now.year, tehran_now.month, tehran_now.day)
-    today_j = f"{jy}-{jm}-{jd}"
-    today_g = tehran_now.strftime("%Y-%m-%d")
-
-    news = fetch_relevant_news()
-    print(f"Fetched {len(news)} relevant headlines on {today_j}")
-    if not news:
-        return
-
-    try:
-        detected = call_gemini(api_key, news, today_j, today_g)
-    except Exception as e:
-        print(f"Gemini API error: {e}")
-        sys.exit(0)
-
-    print(f"AI detected {len(detected)} confirmed closures.")
-    hol_path = "holidays.json"
-    with open(hol_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    emg = data.setdefault("emergency", {})
-    changed = False
-
-    for item in detected:
-        dkey = str(item.get("date", "")).strip()
-        if not re.match(r"^\d{4}-\d{1,2}-\d{1,2}$", dkey):
-            continue
-        entry = {
-            "title": str(item.get("title", "تعطیلی اضطراری")).strip(),
-            "reason": str(item.get("reason", "")).strip(),
-            "scope": item.get("scope", "all") if item.get("scope") in ("all", "offices", "schools") else "all",
-            "cities": item.get("cities") if isinstance(item.get("cities"), list) and item.get("cities") else ["سراسری"],
-            "isHoliday": bool(item.get("isHoliday", True)),
-            "source": str(item.get("source", "خبرگزاری رسمی")).strip(),
-        }
-        cur_list = emg.setdefault(dkey, [])
-        if not any(x.get("title") == entry["title"] and x.get("cities") == entry["cities"] for x in cur_list):
-            cur_list.append(entry)
-            changed = True
+        for item in detected:
+            dkey = str(item.get("date", "")).strip()
+            if not re.match(r"^\d{4}-\d{1,2}-\d{1,2}$", dkey):
+                continue
+            entry = {
+                "title": str(item.get("title", "تعطیلی اضطراری")).strip(),
+                "reason": str(item.get("reason", "")).strip(),
+                "scope": item.get("scope", "all") if item.get("scope") in ("all", "offices", "schools") else "all",
+                "cities": item.get("cities") if isinstance(item.get("cities"), list) and item.get("cities") else ["سراسری"],
+                "isHoliday": bool(item.get("isHoliday", True)),
+                "source": str(item.get("source", "خبرگزاری رسمی")).strip(),
+            }
+            cur_list = emg.setdefault(dkey, [])
+            if not any(x.get("title") == entry["title"] and x.get("cities") == entry["cities"] for x in cur_list):
+                cur_list.append(entry)
+                changed = True
 
     if changed:
         for path in ("holidays.json", "app/src/main/assets/www/holidays.json"):
