@@ -253,9 +253,7 @@ class MainActivity : AppCompatActivity() {
         ) {
             needed.add(Manifest.permission.RECORD_AUDIO)
         }
-        if (needed.isNotEmpty()) {
-            ActivityCompat.requestPermissions(this, needed.toTypedArray(), 2001)
-        }
+        // Permissions (microphone, notifications, location, calendar) are requested on-demand only.
     }
 
     override fun onRequestPermissionsResult(
