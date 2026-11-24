@@ -5608,6 +5608,15 @@ async function updatePersistentStatusDate(forcePost = false) {
     try { window.AndroidBridge.showStatusDateNotification(primaryDayStr, nTitleA, nBodyA); } catch (e) {}
     return;
   }
+
+  // On iOS PWA, Web Push notifications are sent only once per day (unless user explicitly taps Refresh in Settings)
+  if (isIosDevice() && !forcePost) {
+    const todayIosKey = `${tod.jy}-${tod.jm}-${tod.jd}`;
+    if (localStorage.getItem("smartcal_ios_daily_notif_sent") === todayIosKey) {
+      return;
+    }
+  }
+
   if (!("Notification" in window)) return;
 
   if (Notification.permission === "default" && forcePost) {
@@ -5643,18 +5652,18 @@ async function updatePersistentStatusDate(forcePost = false) {
   if (!forcePost && sig === lastNotifSignature) return;
   lastNotifSignature = sig;
 
-  const simpleOpts = {
+  const iosOpts = {
     body: notifBody,
     icon: "./icon-192.png",
     tag: "smartcal-daily-status",
-    renotify: true
+    renotify: false
   };
   const richOpts = {
     body: notifBody,
     icon: notifTileIconUrl,
     badge: badgeDataUrl,
     tag: "smartcal-daily-status",
-    renotify: true
+    renotify: false
   };
 
   let sent = false;
@@ -5662,12 +5671,17 @@ async function updatePersistentStatusDate(forcePost = false) {
     try {
       const reg = await navigator.serviceWorker.getRegistration().catch(() => null);
       if (reg && reg.showNotification) {
-        try {
-          await reg.showNotification(notifTitle, richOpts);
+        if (isIosDevice()) {
+          await reg.showNotification(notifTitle, iosOpts);
           sent = true;
-        } catch (errRich) {
-          await reg.showNotification(notifTitle, simpleOpts);
-          sent = true;
+        } else {
+          try {
+            await reg.showNotification(notifTitle, richOpts);
+            sent = true;
+          } catch (errRich) {
+            await reg.showNotification(notifTitle, iosOpts);
+            sent = true;
+          }
         }
       }
     } catch (errSw) {
@@ -5675,10 +5689,14 @@ async function updatePersistentStatusDate(forcePost = false) {
     }
   }
 
-  if (!sent) {
+  if (!sent && !isIosDevice()) {
     try {
       new Notification(notifTitle, { body: notifBody, icon: "./icon-192.png", tag: "smartcal-daily-status" });
     } catch (errWin) {}
+  }
+
+  if (isIosDevice()) {
+    try { localStorage.setItem("smartcal_ios_daily_notif_sent", `${tod.jy}-${tod.jm}-${tod.jd}`); } catch (e) {}
   }
 }
 
@@ -5690,6 +5708,7 @@ async function togglePersistentDateNotif(forceVal) {
     statusNotifEnabled = false;
     localStorage.setItem("cal_status_notif_v1", "false");
     lastNotifSignature = "";
+    try { localStorage.removeItem("smartcal_ios_daily_notif_sent"); } catch (e) {}
     if (window.AndroidBridge && typeof window.AndroidBridge.cancelStatusDateNotification === "function") {
       try { window.AndroidBridge.cancelStatusDateNotification(); } catch (e) {}
       try {
@@ -5711,12 +5730,10 @@ async function togglePersistentDateNotif(forceVal) {
   }
 }
 
-// Auto-trigger persistent status bar notification on first user tap or when returning to app
+// Trigger daily status notification cleanly once per day on open/return (avoiding duplicate bursts on iOS)
 document.addEventListener("click", function autoInitNotifOnce() {
-  if (statusNotifEnabled && "Notification" in window) {
-    if (Notification.permission === "default") {
-      updatePersistentStatusDate(true);
-    } else if (Notification.permission === "granted") {
+  if (statusNotifEnabled && "Notification" in window && !isIosDevice()) {
+    if (Notification.permission === "default" || Notification.permission === "granted") {
       updatePersistentStatusDate(true);
     }
   }
@@ -5725,7 +5742,7 @@ document.addEventListener("click", function autoInitNotifOnce() {
 
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible" && statusNotifEnabled) {
-    updatePersistentStatusDate(true);
+    updatePersistentStatusDate(false);
   }
 });
 
@@ -6920,14 +6937,23 @@ const PWA_MKT_CACHE_KEY = "mkt_cache_smartcal_v62";
 
 const RAHAVARD_ETF_SYMBOLS = {
   etf_ayar:    ["عیار", "AYAR"],
-  etf_noghran: ["نقران", "NOGHRAN"]
+  etf_noghran: ["نقران", "نقره", "NOGHRAN", "NOGHREH", "NOGHRA"]
 };
 
 function parseRahavardPriceToToman(rawVal, forceRial = false) {
   const num = Number(String(rawVal ?? "").replace(/,/g, "").trim());
   if (!isFinite(num) || num <= 0) return 0;
-  const toman = forceRial ? Math.round(num / 10) : (num >= 200000 ? Math.round(num / 10) : Math.round(num));
-  // Sanity check: Bourse ETF unit prices in Iran are between 100 Toman and 5,000,000 Toman
+  // If value has decimals (e.g. Rahavard NAV/last in Tomans or decimal quotes), round properly
+  const hasDecimal = !Number.isInteger(num);
+  let toman = 0;
+  if (hasDecimal) {
+    toman = Math.round(num);
+  } else if (forceRial) {
+    // TSETMC quotes are in Rials; if an ETF is quoted in Tomans (< 50000 on TSETMC), keep as Toman; else divide Rial by 10
+    toman = num >= 200000 ? Math.round(num / 10) : Math.round(num);
+  } else {
+    toman = num >= 200000 ? Math.round(num / 10) : Math.round(num);
+  }
   if (toman < 100 || toman > 5000000) return 0;
   return toman;
 }
@@ -7001,18 +7027,21 @@ function parseTsetmcMarketWatchText(rawTxt) {
     const cols = row.split(",");
     if (cols.length < 14) continue;
     const sym = normFaSym(cols[2]);
-    if (!sym) continue;
+    const title = normFaSym(cols[3]);
+    if (!sym && !title) continue;
     for (const ico of Object.keys(RAHAVARD_ETF_SYMBOLS)) {
       if (found[ico]) continue;
       const targets = RAHAVARD_ETF_SYMBOLS[ico].map(normFaSym);
-      if (targets.includes(sym)) {
-        const lastRial = Number(cols[7]) || Number(cols[6]) || 0;
-        const yestRial = Number(cols[13]) || 0;
-        const tomanP = parseRahavardPriceToToman(lastRial, true);
+      const hitSym = targets.some(t => (sym && sym === t) || (ico === "etf_noghran" && (sym.includes("نقر") || title.includes("نقر"))));
+      if (hitSym) {
+        // cols[7] = last trade (PDrCotVal), cols[6] = closing (PClosing), cols[13] = prev close (PriceYesterday)
+        const lastRaw = Number(cols[7]) > 0 ? Number(cols[7]) : Number(cols[6]);
+        const yestRaw = Number(cols[13]) || 0;
+        const tomanP = parseRahavardPriceToToman(lastRaw, true);
         if (tomanP > 0) {
           let chgStr = "0.00%";
-          if (yestRial > 0) {
-            const pct = ((lastRial - yestRial) / yestRial) * 100;
+          if (yestRaw > 0 && lastRaw > 0) {
+            const pct = ((lastRaw - yestRaw) / yestRaw) * 100;
             if (isFinite(pct) && Math.abs(pct) <= 25) chgStr = fmtPct(pct, "0.00%");
           }
           found[ico] = { p: tomanP, c: chgStr, unit: "toman", rahavardLive: true, src: "TSETMC" };
@@ -7023,12 +7052,42 @@ function parseTsetmcMarketWatchText(rawTxt) {
   return found;
 }
 
+function scanHtmlForSymbolPrice(htmlTxt, keywords) {
+  if (!htmlTxt || typeof htmlTxt !== "string") return null;
+  const plain = htmlTxt.replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ");
+  const sp = String.fromCharCode(92);
+  const escRe = s => s.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, sp + "$&");
+  for (const kw of keywords) {
+    try {
+      const pat = escRe(kw) + "[^0-9۰-۹" + sp + "-]{0,50}([0-9۰-۹,]{3,10}(?:[.,][0-9۰-۹]{1,2})?)(?:[^0-9۰-۹%" + sp + "-]{0,25}([+" + sp + "-]?[0-9۰-۹.]+)" + sp + "s*%)?";
+      const re = new RegExp(pat, "i");
+      const m = plain.match(re);
+      if (m && m[1]) {
+        const latNum = m[1].replace(/[۰-۹]/g, d => "۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/,/g, "");
+        const tomanP = parseRahavardPriceToToman(latNum, false);
+        if (tomanP >= 100 && tomanP <= 5000000) {
+          let chgStr = "0.00%";
+          if (m[2]) {
+            const latChg = m[2].replace(/[۰-۹]/g, d => "۰۱۲۳۴۵۶۷۸۹".indexOf(d));
+            const cn = Number(latChg);
+            if (isFinite(cn) && Math.abs(cn) <= 25) chgStr = fmtPct(cn, "0.00%");
+          }
+          return { p: tomanP, c: chgStr, unit: "toman", rahavardLive: true, src: "ره‌آورد" };
+        }
+      }
+    } catch (e) {}
+  }
+  return null;
+}
+
 async function fetchRahavardEtfs(bust = "") {
   const endpoints = [
     "https://cdn.tsetmc.com/api/ClosingPrice/GetMarketWatch?market=0&industrialGroup=&paperTypes%5B0%5D=8&showTraded=false&withBestLimits=false",
     "https://old.tsetmc.com/tsev2/data/MarketWatchInit.aspx?h=0&r=0",
     "https://rahavard365.com/api/v2/market/symbols?market=bourse&type=etf",
-    "https://rahavard365.com/api/v2/symbols?type=gold_etf"
+    "https://rahavard365.com/api/v2/symbols?type=gold_etf",
+    "https://rahavard365.com/asset/noghran",
+    "https://rahavard365.com/asset/ayar"
   ];
   const results = await Promise.all(
     endpoints.map(async (ep) => {
@@ -7041,7 +7100,12 @@ async function fetchRahavardEtfs(bust = "") {
       try {
         return scanRahavardJsonForEtfs(JSON.parse(txt));
       } catch (e) {
-        return {};
+        const out = {};
+        const nHit = scanHtmlForSymbolPrice(txt, ["نقران", "NOGHRAN", "صندوق نقره نقران"]);
+        if (nHit) out.etf_noghran = nHit;
+        const aHit = scanHtmlForSymbolPrice(txt, ["عیار", "AYAR", "صندوق طلای عیار"]);
+        if (aHit) out.etf_ayar = aHit;
+        return out;
       }
     })
   );
