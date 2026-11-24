@@ -6425,12 +6425,45 @@ async function fetchJsonFast(url, timeoutMs = 4500) {
   return null;
 }
 
-async function fetchTextViaProxy(targetUrl, timeoutMs = 6500) {
-  if (window.AndroidBridge && window.AndroidBridge.fetchUrlNative) {
+window.__nativeFetchCbs = window.__nativeFetchCbs || {};
+window.__nativeFetchSeq = window.__nativeFetchSeq || 0;
+window.__onNativeFetchDone = function(reqId, text) {
+  const cb = window.__nativeFetchCbs && window.__nativeFetchCbs[reqId];
+  if (cb) {
+    delete window.__nativeFetchCbs[reqId];
+    try { cb(text || ""); } catch (e) {}
+  }
+};
+function fetchUrlNativePromise(targetUrl, timeoutMs = 5000) {
+  if (!window.AndroidBridge || typeof window.AndroidBridge.fetchUrlNativeAsync !== "function") {
+    return Promise.resolve(null);
+  }
+  return new Promise((resolve) => {
+    const reqId = "nf_" + (++window.__nativeFetchSeq) + "_" + Date.now();
+    const tid = setTimeout(() => {
+      if (window.__nativeFetchCbs && window.__nativeFetchCbs[reqId]) {
+        delete window.__nativeFetchCbs[reqId];
+      }
+      resolve(null);
+    }, timeoutMs);
+    window.__nativeFetchCbs[reqId] = (txt) => {
+      clearTimeout(tid);
+      resolve(txt && txt.length > 120 ? txt : null);
+    };
     try {
-      const nativeTxt = window.AndroidBridge.fetchUrlNative(targetUrl);
-      if (nativeTxt && nativeTxt.length > 120) return nativeTxt;
-    } catch (e) {}
+      window.AndroidBridge.fetchUrlNativeAsync(reqId, targetUrl);
+    } catch (e) {
+      clearTimeout(tid);
+      delete window.__nativeFetchCbs[reqId];
+      resolve(null);
+    }
+  });
+}
+
+async function fetchTextViaProxy(targetUrl, timeoutMs = 6500) {
+  if (window.AndroidBridge && typeof window.AndroidBridge.fetchUrlNativeAsync === "function") {
+    const nativeTxt = await fetchUrlNativePromise(targetUrl, Math.min(timeoutMs, 5000));
+    if (nativeTxt) return nativeTxt;
   }
   const attempts = [
     { url: targetUrl, unwrapJson: false },
@@ -9817,7 +9850,7 @@ if (window.__dismissSmartSplash) window.__dismissSmartSplash();
 // Defer non-critical background work until after opening animation completes cleanly
 setTimeout(() => { try { checkBirthdaySurprise(false); } catch(e) {} }, 850);
 setTimeout(() => { try { fetchWeather(true); } catch(e) {} }, 980);
-setTimeout(() => { try { fetchMarket(false); } catch(e) {} }, 1250);
+// Market loads lazily when opening Assets tab for instant zero-lag startup
 setTimeout(() => {
   try { detectUserLocation(false); } catch(e) {}
   try { if (typeof detectAndSyncUserCountry === "function") detectAndSyncUserCountry(false); } catch(e) {}
