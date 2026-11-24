@@ -2,8 +2,8 @@
 
 ![Version](https://img.shields.io/badge/Version-72-1B6EF3?style=for-the-badge)
 ![Platform](https://img.shields.io/badge/Platform-Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
-![Languages](https://img.shields.io/badge/Languages-FA%20%7C%20KU%20%7C%20EN-8B5CF6?style=for-the-badge)
-![UI](https://img.shields.io/badge/Refresh%20Rate-120Hz%20Fluid-EC4899?style=for-the-badge)
+![Languages](https://img.shields.io/badge/Languages-FA--KU--EN-8B5CF6?style=for-the-badge)
+![UI](https://img.shields.io/badge/UI-120Hz_Fluid-EC4899?style=for-the-badge)
 
 **Smart Cal** یک اپلیکیشن تقویم، مدیریت وظایف، ردیاب لحظه‌ای بازار، آب‌وهوا و طالع‌بینی هوشمند برای اندروید است که با تمرکز بر **سرعت ۱۲۰ هرتز، مصرف کم منابع، طراحی مدرن و پشتیبانی کامل از سه زبان فارسی، کوردی و انگلیسی** توسعه یافته است.
 
