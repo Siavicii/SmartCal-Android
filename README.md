@@ -1,181 +1,114 @@
-<p align="center">
-  <h1>📅 Smart Cal — Android</h1>
-  <p><strong>A Smart, Lightweight, Multi-Calendar Android App (Persian, Kurdish & Gregorian)</strong></p>
-  <p>
-    <a href="#english">🇬🇧 English</a> •
-    <a href="#persian">🇮🇷 فارسی</a>
-  </p>
-  <p>
-    <img src="https://img.shields.io/badge/Version-v72-blue?style=for-the-badge" alt="Version" />
-    <img src="https://img.shields.io/badge/Platform-Android-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Platform" />
-    <img src="https://img.shields.io/badge/Stack-Kotlin%20%2B%20WebView-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white" alt="Stack" />
-    <img src="https://img.shields.io/badge/Languages-FA%20%7C%20KU%20%7C%20EN-orange?style=for-the-badge" alt="Languages" />
-  </p>
-</p>
+# 📅 Smart Cal — تقویم هوشمند جامع (نسخه اندروید v72)
+
+![Version](https://img.shields.io/badge/Version-72-1B6EF3?style=for-the-badge)
+![Platform](https://img.shields.io/badge/Platform-Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
+![Languages](https://img.shields.io/badge/Languages-FA%20%7C%20KU%20%7C%20EN-8B5CF6?style=for-the-badge)
+![UI](https://img.shields.io/badge/Refresh%20Rate-120Hz%20Fluid-EC4899?style=for-the-badge)
+
+**Smart Cal** یک اپلیکیشن تقویم، مدیریت وظایف، ردیاب لحظه‌ای بازار، آب‌وهوا و طالع‌بینی هوشمند برای اندروید است که با تمرکز بر **سرعت ۱۲۰ هرتز، مصرف کم منابع، طراحی مدرن و پشتیبانی کامل از سه زبان فارسی، کوردی و انگلیسی** توسعه یافته است.
 
 ---
 
-<a id="english"></a>
+## 🔗 لینک‌های دسترسی مستقیم
 
-## 🇬🇧 Overview
-
-**Smart Cal** is a fast, modern, all-in-one Android calendar application supporting **Persian (Jalali)**, **Kurdish (Sorani)**, and **Gregorian** calendar systems. It combines dynamic home-screen app icons, live weather forecasts, real-time financial & gold/currency rates, background native alarms, and optional two-way Google Calendar synchronization inside a fluid, customizable interface.
-
----
-
-## 📸 Screenshots
-
-> 💡 *Tip: Create a `screenshots/` folder in your repository root and upload your app screenshots with the filenames below (`home.png`, `styles.png`, `calendar.png`, `settings.png`) so they appear automatically here.*
-
-| Home & Calendar | Themes & UI Styles | Weather & Markets | Settings & Sync |
-| :---: | :---: | :---: | :---: |
-| <img src="screenshots/home.png" width="200" alt="Home Screen" /> | <img src="screenshots/styles.png" width="200" alt="UI Styles" /> | <img src="screenshots/markets.png" width="200" alt="Weather & Financial Rates" /> | <img src="screenshots/settings.png" width="200" alt="Settings & Google Sync" /> |
+| نسخه / بخش | لینک دسترسی | کاربرد |
+| :--- | :--- | :--- |
+| **📥 دانلود مستقیم نسخه اندروید (APK)** | [آخرین نسخه (Releases)](https://github.com/Siavicii/SmartCalender-Android/releases/latest) | نصب مستقیم روی گوشی و تبلت اندروید |
+| **🌐 نسخه وب و PWA (آیفون، دسکتاپ، اندروید)** | [اجرای آنلاین در مرورگر](https://siavicii.github.io/SmartCalender-PWA/) | اجرا بدون نصب یا نصب به‌صورت وب‌اپلیکیشن تمام‌صفحه |
+| **📦 مخزن اصلی گیت‌هاب** | [Siavicii/SmartCalender-Android](https://github.com/Siavicii/SmartCalender-Android) | مشاهده سورس، تغییرات و گزارش خطا |
 
 ---
 
-## ✨ Key Features
+## 📲 راهنمای جامع نصب و راه‌اندازی
 
-- **🌐 Tri-Calendar & Tri-Language Support:** Seamlessly switch between **Persian (Jalali)**, **Kurdish (Sorani)**, and **English (Gregorian)** with consistent localization across the entire UI.
-- **🔄 Dynamic App Icon (Future-Proof):** Automatically updates the launcher icon at midnight (using `AlarmManager.RTC_WAKEUP`) to match the current day, month, selected calendar/language, and system Dark/Light mode—designed without year-dependent weekday labels so it never expires.
-- **🔔 Persistent Status Bar Date:** Displays the current day number persistently in the Android status bar and automatically refreshes at midnight even when the app is closed.
-- **📆 Optional Google Calendar Sync:** Native two-way sync via Android's `CalendarContract` to read and create events directly in your device's Google Calendar (no extra login required, disabled by default until enabled by the user).
-- **⏰ Native Background Alarms:** Reliable, exact-time reminder notifications powered by `AlarmManager` and `AlarmReceiver`, working even when the app is completely closed.
-- **🎨 8 Modern UI Styles & Smooth Launch:** Includes *iOS 26 Liquid Glass*, *Android 17 Expressive*, *Classic*, *Glass*, *Bento*, *Swiss Minimal*, and more—paired with a hardware-accelerated 60fps launch animation and automatic Dark/Light theme support.
-- **🌦️ Live Weather & Financial Tracking:** Real-time weather conditions, air-quality alerts, and live gold, coin, and currency rates (TGJU & global markets) fetched natively without CORS restrictions.
-- **🚀 Smart GitHub Auto-Updater:** Numeric semantic version comparison against GitHub Releases to notify you only when a newer version is available, plus a manual check button in Settings.
+### 🤖 ۱. نصب نسخه اندروید (فایل APK)
+1. وارد صفحه **[آخرین نسخه (Releases)](https://github.com/Siavicii/SmartCalender-Android/releases/latest)** شوید و فایل `.apk` نسخه **v72** را دانلود کنید.
+2. روی فایل دانلودشده بزنید. اگر برای اولین بار از خارج گوگل‌پلی برنامه نصب می‌کنید، در پنجره بازشده گزینه **Settings (تنظیمات)** را بزنید و تیک **Allow from this source (مجاز کردن نصب از این منبع)** را فعال کنید.
+3. دکمه **Install (نصب)** را بزنید و پس از پایان، برنامه را باز کنید.
+
+#### تنظیمات پیشنهادی پس از نصب در اندروید:
+* **اعلان دائمی تاریخ در نوار وضعیت:** از منوی **تنظیمات (⚙️)** گزینه **«تاریخ در نوار وضعیت»** را فعال کنید و مجوز **Notifications (اعلان‌ها)** را تأیید کنید تا عدد روز در نوار بالای گوشی نمایش داده شود.
+* **ویجت صفحه اصلی:** روی فضای خالی صفحه اصلی گوشی انگشت خود را نگه دارید ← وارد بخش **Widgets (ویجت‌ها)** شوید ← **Smart Cal** را پیدا کرده و ویجت **روزانه** یا **ماهانه** را به صفحه اضافه کنید.
+* **تایپ صوتی و مکان‌یابی:** در صورت استفاده از یادداشت صوتی یا تشخیص خودکار شهر برای آب‌وهوا، مجوز **Microphone** و **Location** را در زمان درخواست برنامه تأیید کنید.
+* **بروزرسانی خودکار:** برنامه به‌صورت خودکار نسخه‌های جدید را از گیت‌هاب بررسی کرده و در صورت انتشار آپدیت، به شما اطلاع می‌دهد.
+
+### 🍎 ۲. دسترسی در آیفون و آیپد (iOS / iPadOS)
+کاربران iOS می‌توانند از نسخه وب‌اپلیکیشن (PWA) با همان امکانات و ظاهر **iOS 26 Liquid Glass** استفاده کنند:
+1. لینک نسخه وب را در مرورگر **Safari** باز کنید.
+2. آیکون **Share (مربع با فلش رو به بالا ⬆️)** را در نوار پایین Safari لمس کنید.
+3. صفحه را کمی به بالا بکشید و گزینه **Add to Home Screen (افزودن به صفحه اصلی)** را انتخاب کنید.
+4. نام **Smart Cal** را تأیید و روی **Add** بزنید. از این پس برنامه با آیکون اختصاصی و به‌صورت تمام‌صفحه (بدون نوار مرورگر) اجرا می‌شود.
+
+### 💻 ۳. دسترسی در دسکتاپ (ویندوز، مک و لینوکس)
+1. لینک نسخه وب را در مرورگر **Google Chrome**، **Microsoft Edge** یا **Brave** باز کنید.
+2. در سمت راست نوار آدرس، روی آیکون **Install (📥 یا ➕)** کلیک کنید و گزینه **Install** را بزنید (در Edge از منوی `⋯` ← `Apps` ← `Install this site as an app`).
+3. برنامه به‌صورت یک اپلیکیشن مستقل با پنجره اختصاصی و **نوار ناوبری عمودی شناور** روی سیستم نصب می‌شود و می‌توانید آن را به Taskbar یا Dock پین کنید.
 
 ---
 
-## 📥 Download & Installation
+## ✨ ویژگی‌های کلیدی نسخه ۷۲
 
-1. Go to the [**Releases**](https://github.com/Siavicii/SmartCal-Android/releases/latest) page.
-2. Download the latest `.apk` file and install it on your Android device.
-3. Future updates will be detected automatically inside the app.
+### 🗓️ تقویم سه‌گانه و مناسبت‌های هوشمند
+* **پشتیبانی کامل از تقویم‌های هجری شمسی، کوردی و میلادی** با جابه‌جایی سریع و نمایش هم‌زمان تاریخ فرعی در خانه‌ها.
+* **بروزرسانی آنلاین و خودکار مناسبت‌ها**، تعطیلات رسمی ایران، مناسبت‌های جهانی، تعطیلات کشورهای مختلف و **اعلام تعطیلات اضطراری استانی/سراسری**.
+* **نمای ماهانه، سالانه و تمام‌صفحه** با پشتیبانی از تغییر روز اول هفته و انتخاب چندگانه روزهای تعطیل آخر هفته.
+* **مبدل جامع تاریخ** و **محاسبه‌گر دقیق فاصله دو تاریخ**.
+
+### 🎨 ۱۸ تم طراحی + تم‌های مناسبتی خودکار
+* **۱۰ سبک مدرن پایه:** `iOS 26 Liquid Glass`، `Android 17 Expressive`، `Classic`، `Aurora Glass`، `Swiss Minimal`، `Bento`، `Neumorphism`، `Cyber Neon`، `کلاسیک ایرانی` و `Nordic`.
+* **۴ تم طراحی جدید:** مشکی مطلق (`AMOLED Pure Black`)، آرامش طبیعت (`Matcha`)، غروب آفتاب (`Sunset Glow`) و کاغذی/کتابی (`E-Ink Paper`).
+* **۴ تم مناسبتی خودکار با تغییر آیکون‌ها و افکت سبک:**
+  * 🌸 **نوروز و سال نو شمسی** (۲۹ اسفند تا ۱۳ فروردین)
+  * 🎄 **کریسمس و سال نو میلادی** (۲۴ دسامبر تا ۲ ژانویه)
+  * 🍉 **شب یلدا** (۲۹ و ۳۰ آذر)
+  * 🎂 **تم اختصاصی روز تولد شما**
+* **هماهنگی هوشمند با رنگ سیستم (Material You)**، حالت شب/روز گوشی، وضعیت آب‌وهوا و فصل.
+* **۷ فونت آفلاین یکپارچه** (ایران‌سنس، وزیرمتن، استعداد، ساحل، نوتو سنس، نوتو نسخ و دستخط) + کنترل دقیق اندازه فونت.
+
+### 💰 ردیاب هوشمند دارایی‌ها (طلا، نقره، ارز و بورس)
+* نمایش نرخ لحظه‌ای **طلا (۱۸ و ۲۴ عیار)، سکه (امامی، نیم، ربع)، انس جهانی طلا و نقره، نقره ۹۹۹، ارزهای خارجی** و **صندوق‌های بورسی (صندوق طلای عیار و صندوق نقره نقران)** از منابع زنده (TGJU، ره‌آورد ۳۶۵ و بورس).
+* **مدیریت هوشمند ساعات کاری بازار:** بروزرسانی خودکار فقط در ساعات معاملاتی بازار (شنبه تا چهارشنبه ۱۰ تا ۲۱، پنج‌شنبه ۱۰ تا ۱۶؛ صندوق‌های بورسی ۱۲ تا ۱۸) و فقط هنگام حضور در تب دارایی‌ها انجام می‌شود تا برنامه کاملاً سبک بماند.
+* **شخصی‌سازی و اولویت‌بندی:** امکان انتخاب دارایی‌های دلخواه، پین کردن با ستاره (⭐) و مرتب‌سازی دستی.
+
+### 📒 استودیو هوشمند یادداشت، چک‌لیست و یادآور
+* ثبت یادداشت متنی، **چک‌لیست تیک‌دار**، تعیین اولویت، رنگ کارت، هشتگ (`#`) و نوار پیشرفت کارها.
+* **تایپ صوتی بومی اندروید (Voice-to-Text)** با پشتیبانی از فارسی، کوردی و انگلیسی.
+* **هشدار و آلارم بومی اندروید** (`AlarmReceiver`)، یادآوری یک روز زودتر، همگام‌سازی با Google Calendar و خروجی `.ics`.
+* پشتیبان‌گیری و بازیابی کامل یادداشت‌ها و تنظیمات.
+
+### 🔮 طالع‌بینی و فال روزانه
+* **ورودی تاریخ تولد هوشمند** متناسب با تقویم فعال (شمسی، کوردی یا میلادی).
+* نمایش طالع روزانه (با پشتیبانی از بروزرسانی هوشمند AI)، نماد ماه و سال تولد و بنر ویژه روز تولد.
+
+### 🌦️ آب‌وهوا و شاخص کیفیت هوا (AQI)
+* نمایش دمای لحظه‌ای، پیش‌بینی ۴ روزه، آیکون‌های پویا برای روز و شب، شاخص آلودگی هوا (`AQI`)، جستجوی آنلاین تمام شهرها و هشدار تغییر شرایط جوی.
 
 ---
 
-## 🏗️ Project Structure
+## 🛠️ ساختار پروژه و بیلد
 
 ```text
-SmartCal-Android/
-├── generate_icons.py                        # Generates Day & Night dynamic icons for all 3 calendar systems
-├── app/
-│   ├── build.gradle.kts                     # Build config & app version (v64.2 / versionCode 73)
-│   └── src/main/
-│       ├── AndroidManifest.xml              # Permissions, receivers, and dynamic icon activity-aliases
-│       ├── assets/www/                      # Web UI core (index.html, manifest.json, sw.js, version.json)
-│       └── java/com/smartcal/app/
-│           ├── MainActivity.kt              # WebView lifecycle, JS bridge, CalendarContract & GitHub updater
-│           ├── IconUpdater.kt               # Dynamic icon switching, midnight scheduler & status bar notification
-│           ├── DateChangeReceiver.kt        # Midnight broadcast receiver for icon & status bar updates
-│           ├── AlarmReceiver.kt             # Native background alarm receiver for timed reminders
-│           └── JalaliHelper.kt              # Jalali, Kurdish, and Gregorian date conversion utilities
+SmartCalender-Android/
+├── app/src/main/
+│   ├── assets/www/          # رابط کاربری، منطق اصلی (index.html)، مناسبت‌ها و نسخه
+│   ├── java/com/smartcal/app/
+│   │   ├── MainActivity.kt                # WebView بهینه و پل ارتباطی AndroidBridge
+│   │   ├── IconUpdater.kt                 # تغییر خودکار آیکون روزشمار و اعلان نوار وضعیت
+│   │   ├── SmartCalWidgetProvider.kt      # ویجت روزانه
+│   │   ├── SmartCalMonthWidgetProvider.kt # ویجت ماهانه
+│   │   ├── AlarmReceiver.kt               # یادآور و آلارم بومی
+│   │   └── DateChangeReceiver.kt          # بروزرسانی خودکار در نیمه‌شب
+│   └── AndroidManifest.xml
+├── scripts/                 # اسکریپت‌های بروزرسانی خودکار مناسبت‌ها و فال
+└── version.json             # اطلاعات آخرین نسخه برای آپدیت درون‌برنامه‌ای
+```
+
+### ساخت فایل APK با Gradle
+```bash
+./gradlew assembleRelease
 ```
 
 ---
 
-## 🛠️ Building from Source
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/Siavicii/SmartCal-Android.git
-   cd SmartCal-Android
-   ```
-2. Generate the dynamic icon resources (handled automatically if building via GitHub Actions):
-   ```bash
-   python3 generate_icons.py
-   ```
-3. Open in **Android Studio** or build via Gradle:
-   ```bash
-   ./gradlew assembleRelease
-   ```
-
----
-
-## 🔐 Permissions
-
-| Permission | Purpose |
-| :--- | :--- |
-| `INTERNET` | Fetching weather, live financial rates, and checking GitHub Releases |
-| `POST_NOTIFICATIONS` | Displaying the persistent status bar date and reminder alerts |
-| `READ_CALENDAR` / `WRITE_CALENDAR` | Optional — only requested if you enable Google/Device Calendar sync |
-| `SCHEDULE_EXACT_ALARM` / `RECEIVE_BOOT_COMPLETED` | Triggering timed reminders and updating the app icon at midnight |
-
----
-
-<br />
-
-<a id="persian"></a>
-<div dir="rtl">
-
-## 🇮🇷 معرفی برنامه (فارسی)
-
-**Smart Cal** یک اپلیکیشن تقویم هوشمند، سبک و همه‌کاره برای اندروید است که تقویم‌های **شمسی، کوردی و میلادی** را در کنار آب‌وهوای زنده، نرخ لحظه‌ای طلا و ارز، یادآور بومی و همگام‌سازی با تقویم گوگل در یک رابط کاربری مدرن و روان گرد هم آورده است.
-
----
-
-## 📸 تصاویر برنامه
-
-> 💡 *راهنما: کافی است یک پوشه به نام `screenshots` در ریشه مخزن گیت‌هاب بسازید و تصاویر اسکرین‌شات برنامه را با نام‌های `home.png`، `styles.png`، `markets.png` و `settings.png` در آن آپلود کنید تا به‌صورت خودکار در جدول زیر نمایش داده شوند.*
-
-| صفحه اصلی و تقویم | سبک‌های طراحی | آب‌وهوا و بازار مالی | تنظیمات و همگام‌سازی |
-| :---: | :---: | :---: | :---: |
-| <img src="screenshots/home.png" width="200" alt="صفحه اصلی" /> | <img src="screenshots/styles.png" width="200" alt="سبک‌های طراحی" /> | <img src="screenshots/markets.png" width="200" alt="آب‌وهوا و نرخ ارز" /> | <img src="screenshots/settings.png" width="200" alt="تنظیمات" /> |
-
----
-
-## ✨ امکانات کلیدی
-
-- **🌐 پشتیبانی کامل از ۳ تقویم و ۳ زبان:** جابه‌جایی سریع میان تقویم‌های **شمسی (فارسی)**، **کوردی (سورانی)** و **میلادی (انگلیسی)** با ترجمه یکدست تمام بخش‌ها.
-- **🔄 آیکون پویای هوشمند (بدون تاریخ انقضا):** تغییر خودکار آیکون برنامه روی صفحه اصلی گوشی در نیمه‌شب متناسب با روز، ماه، زبان/تقویم انتخابی و حالت شب/روز سیستم (بدون وابستگی به نام روز هفته تا برای همیشه معتبر بماند).
-- **🔔 اعلان همیشگی تاریخ در نوار وضعیت (Status Bar):** نمایش دائمی عدد روز در استاتوس‌بار با به‌روزرسانی خودکار در ساعت ۱۲ شب بدون نیاز به باز کردن برنامه.
-- **📆 همگام‌سازی اختیاری با تقویم گوگل و گوشی:** اتصال بومی و دوطرفه از طریق `CalendarContract` برای مشاهده و ثبت رویدادها در تقویم شخصی کاربر (بدون نیاز به لاگین مجدد).
-- **⏰ یادآور و آلارم بومی پس‌زمینه:** اجرای دقیق اعلان یادداشت‌های ساعت‌دار از طریق `AlarmManager` حتی در صورت بسته بودن کامل برنامه.
-- **🎨 ۸ سبک طراحی مدرن و شروع بدون لگ:** شامل *iOS 26 Liquid Glass*، *Android 17 Expressive*، *Bento*، *Swiss Minimal* و... به همراه انیمیشن شروع ۶۰ فریم و هماهنگی خودکار با حالت شب و روز اندروید.
-- **🌦️ آب‌وهوا و بازار مالی زنده:** نمایش وضعیت آب‌وهوا، هشدارهای جوی و نرخ لحظه‌ای طلا، سکه و ارز با ارتباط مستقیم بومی (بدون محدودیت CORS).
-- **🚀 بروزرسانی خودکار از گیت‌هاب:** مقایسه دقیق عددی نسخه‌ها در GitHub Releases به همراه دکمه بررسی دستی در تنظیمات.
-
----
-
-## 📥 نصب نسخه نهایی (APK)
-
-1. وارد بخش [**Releases**](https://github.com/Siavicii/SmartCal-Android/releases/latest) مخزن شوید.
-2. جدیدترین فایل `.apk` را دانلود و روی گوشی اندرویدی خود نصب کنید.
-3. برای دریافت بروزرسانی‌های بعدی، برنامه به‌صورت خودکار نسخه جدید را به شما اطلاع می‌دهد.
-
----
-
-## 🛠️ راهنمای ساخت (Build)
-
-1. مخزن را کلون کنید:
-   ```bash
-   git clone https://github.com/Siavicii/SmartCal-Android.git
-   cd SmartCal-Android
-   ```
-2. پیش از بیلد، آیکون‌های پویا را با پایتون تولید کنید (در صورت استفاده از GitHub Actions، این مرحله به‌صورت خودکار انجام می‌شود):
-   ```bash
-   python3 generate_icons.py
-   ```
-3. پروژه را با **Android Studio** باز کنید یا با Gradle خروجی بگیرید:
-   ```bash
-   ./gradlew assembleRelease
-   ```
-
----
-
-## 🔐 مجوزها (Permissions)
-
-| مجوز | کاربرد |
-| :--- | :--- |
-| `INTERNET` | دریافت آب‌وهوا، نرخ طلا و ارز و بررسی بروزرسانی |
-| `POST_NOTIFICATIONS` | نمایش اعلان همیشگی تاریخ در نوار وضعیت و یادآورها |
-| `READ_CALENDAR` / `WRITE_CALENDAR` | اختیاری — صرفاً در صورت فعال‌سازی همگام‌سازی تقویم گوگل توسط کاربر |
-| `SCHEDULE_EXACT_ALARM` / `RECEIVE_BOOT_COMPLETED` | اجرای دقیق یادآورها و تغییر خودکار آیکون در نیمه‌شب |
-
----
-
-<p align="center">
-  ساخته‌شده با ❤️ برای تجربه‌ای سریع، زیبا و هوشمند از تقویم
-</p>
-
-</div>
+## 📄 مجوز
+توسعه‌یافته برای استفاده شخصی و انتشار مستقیم از طریق GitHub.
