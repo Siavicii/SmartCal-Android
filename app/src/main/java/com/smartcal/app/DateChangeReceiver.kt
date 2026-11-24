@@ -10,5 +10,7 @@ class DateChangeReceiver : BroadcastReceiver() {
         IconUpdater.refreshStatusDateNotificationIfEnabled(context)
         SmartCalMonthWidgetProvider.resetAndUpdateAll(context)
         SmartCalWidgetProvider.updateAllWidgets(context)
+        SmartCalMarketWidgetProvider.updateAllWidgets(context)
+        AlarmReceiver.rescheduleAllSavedAlarms(context)
     }
 }

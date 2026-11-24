@@ -38,6 +38,8 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.IconCompat
 import androidx.core.graphics.ColorUtils
 import androidx.core.view.WindowCompat
+import android.app.KeyguardManager
+import android.view.HapticFeedbackConstants
 import android.view.WindowManager
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.webkit.WebViewAssetLoader
@@ -48,6 +50,7 @@ import android.provider.CalendarContract
 import android.content.ContentValues
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.concurrent.Executors
 
 class MainActivity : AppCompatActivity() {
 
@@ -58,6 +61,7 @@ class MainActivity : AppCompatActivity() {
     private val NOTIF_ID = 6201
     private var alertSeqId = 6300
 
+    private val networkExecutor = Executors.newFixedThreadPool(4)
     private var pendingWebPermRequest: PermissionRequest? = null
     private var lastBarColor: Int = Color.parseColor("#F4F6FA")
     private var lastLightBg: Boolean = true
@@ -117,7 +121,9 @@ class MainActivity : AppCompatActivity() {
 
     private var isRequestingPermission = false
     private var pendingSpeechTargetId: String = ""
+    private var pendingSpeechLang: String = "fa"
     private val REQ_SPEECH_TO_TEXT = 3001
+    private val REQ_DEVICE_AUTH = 3002
     private var userLeftApp = false
 
     override fun onUserLeaveHint() {
@@ -311,6 +317,21 @@ class MainActivity : AppCompatActivity() {
                 webView.evaluateJavascript("window.onNativeCalendarPermissionResult && window.onNativeCalendarPermissionResult($granted);", null)
             }
         }
+        if (requestCode == 2002) {
+            val granted = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
+            val targetId = pendingSpeechTargetId
+            val langCode = pendingSpeechLang
+            if (granted && targetId.isNotEmpty()) {
+                launchVoiceRecognizer(targetId, langCode)
+            } else {
+                pendingSpeechTargetId = ""
+                runOnUiThread {
+                    try {
+                        webView.evaluateJavascript("if(typeof onNativeVoiceError==='function')onNativeVoiceError('permission_denied');", null)
+                    } catch (_: Exception) {}
+                }
+            }
+        }
         val req = pendingWebPermRequest
         pendingWebPermRequest = null
         if (req != null) {
@@ -337,12 +358,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkForGitHubUpdate(manual: Boolean = false) {
-        Thread {
+        networkExecutor.execute {
+            var conn: HttpURLConnection? = null
             try {
                 val url = URL("https://api.github.com/repos/$GITHUB_REPO/releases/latest")
-                val conn = (url.openConnection() as HttpURLConnection).apply {
-                    connectTimeout = 3000
-                    readTimeout = 3000
+                conn = (url.openConnection() as HttpURLConnection).apply {
+                    connectTimeout = 4000
+                    readTimeout = 4000
                     requestMethod = "GET"
                     setRequestProperty("Accept", "application/vnd.github+json")
                     setRequestProperty("User-Agent", "SmartCalender-Android")
@@ -351,7 +373,7 @@ class MainActivity : AppCompatActivity() {
                     if (manual) runOnUiThread {
                         android.widget.Toast.makeText(this@MainActivity, "خطا در ارتباط با سرور گیت‌هاب", android.widget.Toast.LENGTH_SHORT).show()
                     }
-                    return@Thread
+                    return@execute
                 }
 
                 val response = conn.inputStream.bufferedReader().use { it.readText() }
@@ -371,18 +393,42 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 val currentVer = packageManager.getPackageInfo(packageName, 0).versionName ?: "0"
-                // Unified update notification is handled cleanly by the in-app banner (#appUpdateBanner)
-                // to avoid showing two overlapping update prompts after upgrading.
                 if (latestTag.isNotEmpty() && isNewerVersion(latestTag, currentVer) && apkUrl.isNotEmpty()) {
-                    // Handled by checkForAppUpdate() inside WebView
-                }
-             else if (manual) {
+                    if (manual) {
+                        val targetUrl = apkUrl
+                        runOnUiThread {
+                            if (!isFinishing && !isDestroyed) {
+                                AlertDialog.Builder(this@MainActivity)
+                                    .setTitle("نسخه جدید در دسترس است (v$latestTag)")
+                                    .setMessage("نسخه فعلی شما: $currentVer\nبرای دانلود و نصب نسخه جدید روی دکمه زیر بزنید.")
+                                    .setPositiveButton("دانلود نسخه جدید") { _, _ ->
+                                        try {
+                                            val dlIntent = Intent(Intent.ACTION_VIEW, Uri.parse(targetUrl)).apply {
+                                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                            }
+                                            startActivity(dlIntent)
+                                        } catch (_: Exception) {}
+                                    }
+                                    .setNegativeButton("بعداً", null)
+                                    .show()
+                            }
+                        }
+                    }
+                } else if (manual) {
                     runOnUiThread {
                         android.widget.Toast.makeText(this@MainActivity, "شما از آخرین نسخه ($currentVer) استفاده می‌کنید ✅", android.widget.Toast.LENGTH_SHORT).show()
                     }
                 }
-            } catch (_: Exception) {}
-        }.start()
+            } catch (_: Exception) {
+                if (manual) {
+                    runOnUiThread {
+                        android.widget.Toast.makeText(this@MainActivity, "خطا در بررسی نسخه جدید (اتصال اینترنت را بررسی کنید)", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } finally {
+                try { conn?.disconnect() } catch (_: Exception) {}
+            }
+        }
     }
 
     private fun createDayNumberBitmap(dayText: String): Bitmap {
@@ -444,6 +490,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        try { networkExecutor.shutdownNow() } catch (_: Exception) {}
         if (this::webView.isInitialized) {
             try {
                 webView.stopLoading()
@@ -462,6 +509,43 @@ class MainActivity : AppCompatActivity() {
             webView.goBack()
         } else {
             super.onBackPressed()
+        }
+    }
+
+    private fun launchVoiceRecognizer(targetInputId: String, langCode: String) {
+        runOnUiThread {
+            try {
+                pendingSpeechTargetId = targetInputId
+                pendingSpeechLang = langCode
+                val bcp47 = when (langCode) {
+                    "ku" -> "ckb-IQ"
+                    "en" -> "en-US"
+                    else -> "fa-IR"
+                }
+                val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE, bcp47)
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, bcp47)
+                    putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, false)
+                    putExtra(
+                        RecognizerIntent.EXTRA_PROMPT,
+                        when (langCode) {
+                            "ku" -> "بە دەنگ قسە بکە..."
+                            "en" -> "Speak your note..."
+                            else -> "صحبت کنید تا به متن تبدیل شود..."
+                        }
+                    )
+                }
+                if (intent.resolveActivity(packageManager) != null) {
+                    startActivityForResult(intent, REQ_SPEECH_TO_TEXT)
+                } else {
+                    pendingSpeechTargetId = ""
+                    webView.evaluateJavascript("if(typeof onNativeVoiceError==='function')onNativeVoiceError('no_recognizer');", null)
+                }
+            } catch (_: Exception) {
+                pendingSpeechTargetId = ""
+                webView.evaluateJavascript("if(typeof onNativeVoiceError==='function')onNativeVoiceError('err');", null)
+            }
         }
     }
 
@@ -688,29 +772,52 @@ class MainActivity : AppCompatActivity() {
 
         @JavascriptInterface
         fun scheduleNativeAlarm(triggerMs: Long, title: String, body: String, reqCode: Int) {
-            try {
-                val am = getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
-                val intent = Intent(this@MainActivity, AlarmReceiver::class.java).apply {
-                    putExtra("title", title)
-                    putExtra("body", body)
-                    putExtra("reqCode", reqCode)
-                }
-                val pi = PendingIntent.getBroadcast(
-                    this@MainActivity, reqCode, intent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                )
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    am.setAndAllowWhileIdle(android.app.AlarmManager.RTC_WAKEUP, triggerMs, pi)
-                } else {
-                    am.set(android.app.AlarmManager.RTC_WAKEUP, triggerMs, pi)
-                }
-            } catch (_: Exception) {}
+            AlarmReceiver.scheduleAlarm(this@MainActivity, triggerMs, title, body, reqCode, persist = true)
         }
 
 
         @JavascriptInterface
         fun updateWidgetData(city: String, weather: String, summary: String) {
             SmartCalWidgetProvider.saveContent(this@MainActivity, city, weather, summary)
+        }
+
+        @JavascriptInterface
+        fun updateMarketWidgetData(jsonStr: String) {
+            SmartCalMarketWidgetProvider.saveMarketData(this@MainActivity, jsonStr)
+        }
+
+        @JavascriptInterface
+        fun triggerHaptic(kind: String) {
+            runOnUiThread {
+                try {
+                    if (this@MainActivity::webView.isInitialized) {
+                        val code = when (kind) {
+                            "heavy" -> HapticFeedbackConstants.LONG_PRESS
+                            "medium" -> HapticFeedbackConstants.KEYBOARD_TAP
+                            else -> HapticFeedbackConstants.CLOCK_TICK
+                        }
+                        webView.performHapticFeedback(code)
+                    }
+                } catch (_: Exception) {}
+            }
+        }
+
+        @JavascriptInterface
+        fun requestDeviceAuth() {
+            runOnUiThread {
+                try {
+                    val km = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+                    @Suppress("DEPRECATION")
+                    val intent = km.createConfirmDeviceCredentialIntent("Smart Cal", "احراز هویت برای باز کردن قفل برنامه")
+                    if (intent != null) {
+                        startActivityForResult(intent, REQ_DEVICE_AUTH)
+                    } else {
+                        webView.evaluateJavascript("if(typeof window.onNativeDeviceAuthResult==='function')window.onNativeDeviceAuthResult(true);", null)
+                    }
+                } catch (_: Exception) {
+                    webView.evaluateJavascript("if(typeof window.onNativeDeviceAuthResult==='function')window.onNativeDeviceAuthResult(false);", null)
+                }
+            }
         }
 
         @JavascriptInterface
@@ -796,74 +903,62 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun syncWidgetTheme(uiStyle: String, themeMode: String, accentHex: String, calType: String, lang: String) {
             SmartCalWidgetProvider.saveTheme(this@MainActivity, uiStyle, themeMode, accentHex, calType, lang)
+            SmartCalMarketWidgetProvider.updateAllWidgets(this@MainActivity)
         }
 
         @JavascriptInterface
         fun startVoiceDictation(targetInputId: String, langCode: String) {
             runOnUiThread {
-                try {
-                    val hasMic = ContextCompat.checkSelfPermission(
-                        this@MainActivity,
-                        Manifest.permission.RECORD_AUDIO
-                    ) == PackageManager.PERMISSION_GRANTED
-                    if (!hasMic) {
-                        ActivityCompat.requestPermissions(
-                            this@MainActivity,
-                            arrayOf(Manifest.permission.RECORD_AUDIO),
-                            2002
-                        )
-                    }
+                val hasMic = ContextCompat.checkSelfPermission(
+                    this@MainActivity,
+                    Manifest.permission.RECORD_AUDIO
+                ) == PackageManager.PERMISSION_GRANTED
+                if (!hasMic) {
                     pendingSpeechTargetId = targetInputId
-                    val bcp47 = when (langCode) {
-                        "ku" -> "ckb-IQ"
-                        "en" -> "en-US"
-                        else -> "fa-IR"
-                    }
-                    val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                        putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                        putExtra(RecognizerIntent.EXTRA_LANGUAGE, bcp47)
-                        putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, bcp47)
-                        putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, false)
-                        putExtra(RecognizerIntent.EXTRA_PROMPT, if (langCode == "ku") "بە دەنگ قسە بکە..." else if (langCode == "en") "Speak your note..." else "صحبت کنید تا به متن تبدیل شود...")
-                    }
-                    if (intent.resolveActivity(packageManager) != null) {
-                        startActivityForResult(intent, REQ_SPEECH_TO_TEXT)
-                    } else {
-                        webView.evaluateJavascript("if(typeof onNativeVoiceError==='function')onNativeVoiceError('no_recognizer');", null)
-                    }
-                } catch (_: Exception) {
-                    webView.evaluateJavascript("if(typeof onNativeVoiceError==='function')onNativeVoiceError('err');", null)
+                    pendingSpeechLang = langCode
+                    ActivityCompat.requestPermissions(
+                        this@MainActivity,
+                        arrayOf(Manifest.permission.RECORD_AUDIO),
+                        2002
+                    )
+                    return@runOnUiThread
                 }
+                launchVoiceRecognizer(targetInputId, langCode)
             }
         }
 
         @JavascriptInterface
         fun fetchUrlNativeAsync(reqId: String, urlString: String) {
-            Thread {
+            networkExecutor.execute {
+                var conn: HttpURLConnection? = null
                 val result = try {
-                    val conn = (URL(urlString).openConnection() as HttpURLConnection).apply {
+                    conn = (URL(urlString).openConnection() as HttpURLConnection).apply {
                         connectTimeout = 4500
                         readTimeout = 4500
                         requestMethod = "GET"
-                        setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14) SmartCal/72.0")
+                        setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14) SmartCal/74.0")
                     }
                     if (conn.responseCode in 200..299) {
                         conn.inputStream.bufferedReader().use { it.readText() }
                     } else ""
                 } catch (_: Exception) {
                     ""
+                } finally {
+                    try { conn?.disconnect() } catch (_: Exception) {}
                 }
                 val idEsc = JSONObject.quote(reqId)
                 val resEsc = JSONObject.quote(result)
-                webView.post {
-                    try {
-                        webView.evaluateJavascript(
-                            "if(typeof window.__onNativeFetchDone==='function')window.__onNativeFetchDone($idEsc,$resEsc);",
-                            null
-                        )
-                    } catch (_: Exception) {}
+                if (this@MainActivity::webView.isInitialized && !isDestroyed) {
+                    webView.post {
+                        try {
+                            webView.evaluateJavascript(
+                                "if(typeof window.__onNativeFetchDone==='function')window.__onNativeFetchDone($idEsc,$resEsc);",
+                                null
+                            )
+                        } catch (_: Exception) {}
+                    }
                 }
-            }.start()
+            }
         }
 
         @JavascriptInterface
@@ -876,6 +971,17 @@ class MainActivity : AppCompatActivity() {
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQ_DEVICE_AUTH) {
+            val ok = (resultCode == Activity.RESULT_OK)
+            if (this::webView.isInitialized && !isDestroyed) {
+                runOnUiThread {
+                    try {
+                        webView.evaluateJavascript("if(typeof window.onNativeDeviceAuthResult==='function')window.onNativeDeviceAuthResult($ok);", null)
+                    } catch (_: Exception) {}
+                }
+            }
+            return
+        }
         if (requestCode == REQ_SPEECH_TO_TEXT) {
             val targetId = pendingSpeechTargetId
             pendingSpeechTargetId = ""
