@@ -16,7 +16,6 @@ import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.Typeface
 import android.app.Activity
-import android.content.Intent
 import android.net.Uri
 import android.speech.RecognizerIntent
 import android.os.Build
