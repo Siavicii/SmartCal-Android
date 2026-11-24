@@ -1,4 +1,4 @@
-# 📅 Smart Cal — تقویم هوشمند جامع (نسخه اندروید v72)
+# 📅 Smart Cal — تقویم هوشمند جامع (نسخه اندروید)
 
 ![Version](https://img.shields.io/badge/Version-72-1B6EF3?style=for-the-badge)
 ![Platform](https://img.shields.io/badge/Platform-Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
