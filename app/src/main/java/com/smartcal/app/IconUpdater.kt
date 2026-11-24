@@ -163,9 +163,11 @@ object IconUpdater {
 
             when {
                 calType == "gregorian" || lang == "en" -> {
+                    val enWds = arrayOf("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
+                    val wdEn = enWds[(cal.get(Calendar.DAY_OF_WEEK) - 1).coerceIn(0, 6)]
                     dayNum = gd.toString()
                     shortMonth = EN_MONTHS[(gm - 1).coerceIn(0, 11)].take(3).uppercase()
-                    title = "$gd ${EN_MONTHS[(gm - 1).coerceIn(0, 11)]} $gy"
+                    title = "$gd ${EN_MONTHS[(gm - 1).coerceIn(0, 11)]} ($gm) $gy ($wdEn)"
                     body = "Smart Cal"
                 }
                 calType == "kurdish" || lang == "ku" -> {
