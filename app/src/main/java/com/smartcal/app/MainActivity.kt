@@ -23,6 +23,7 @@ import android.os.Bundle
 import android.webkit.GeolocationPermissions
 import android.webkit.JavascriptInterface
 import android.webkit.PermissionRequest
+import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -130,6 +131,11 @@ class MainActivity : AppCompatActivity() {
     private var pendingSpeechLang: String = "fa"
     private val REQ_SPEECH_TO_TEXT = 3001
     private val REQ_DEVICE_AUTH = 3002
+    private val REQ_FILE_CHOOSER = 3003
+    private val REQ_SAVE_BACKUP_FILE = 3004
+    private val REQ_OPEN_BACKUP_FILE = 3005
+    private var filePathCallback: ValueCallback<Array<Uri>>? = null
+    private var pendingSaveContent: String? = null
     private var userLeftApp = false
 
     override fun onUserLeaveHint() {
@@ -260,6 +266,26 @@ class MainActivity : AppCompatActivity() {
                     try {
                         request.grant(request.resources)
                     } catch (_: Exception) {}
+                }
+            }
+
+            override fun onShowFileChooser(
+                webView: WebView?,
+                filePathCallback: ValueCallback<Array<Uri>>?,
+                fileChooserParams: FileChooserParams?
+            ): Boolean {
+                this@MainActivity.filePathCallback?.onReceiveValue(null)
+                this@MainActivity.filePathCallback = filePathCallback
+                return try {
+                    val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                        addCategory(Intent.CATEGORY_OPENABLE)
+                        type = "*/*"
+                    }
+                    startActivityForResult(intent, REQ_FILE_CHOOSER)
+                    true
+                } catch (_: Exception) {
+                    this@MainActivity.filePathCallback = null
+                    false
                 }
             }
         }
@@ -793,6 +819,38 @@ class MainActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
+        fun saveTextFileNative(filename: String, mimeType: String, content: String) {
+            runOnUiThread {
+                try {
+                    pendingSaveContent = content
+                    val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                        addCategory(Intent.CATEGORY_OPENABLE)
+                        type = if (mimeType.isNotBlank()) mimeType else "application/json"
+                        putExtra(Intent.EXTRA_TITLE, if (filename.isNotBlank()) filename else "SmartCal-Backup.json")
+                    }
+                    startActivityForResult(intent, REQ_SAVE_BACKUP_FILE)
+                } catch (_: Exception) {
+                    pendingSaveContent = null
+                    webView.evaluateJavascript("if(typeof window.onNativeFileSaved==='function')window.onNativeFileSaved(false);", null)
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun pickTextFileNative(mimeType: String) {
+            runOnUiThread {
+                try {
+                    val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                        addCategory(Intent.CATEGORY_OPENABLE)
+                        type = "*/*"
+                        putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("application/json", "text/plain", "application/octet-stream"))
+                    }
+                    startActivityForResult(intent, REQ_OPEN_BACKUP_FILE)
+                } catch (_: Exception) {}
+            }
+        }
+
+        @JavascriptInterface
         fun triggerHaptic(kind: String) {
             runOnUiThread {
                 try {
@@ -1066,6 +1124,58 @@ class MainActivity : AppCompatActivity() {
                     try {
                         webView.evaluateJavascript("if(typeof window.onNativeDeviceAuthResult==='function')window.onNativeDeviceAuthResult($ok);", null)
                     } catch (_: Exception) {}
+                }
+            }
+            return
+        }
+        if (requestCode == REQ_FILE_CHOOSER) {
+            val cb = filePathCallback
+            filePathCallback = null
+            val uris = if (resultCode == Activity.RESULT_OK && data?.data != null) arrayOf(data.data!!) else null
+            cb?.onReceiveValue(uris)
+            return
+        }
+        if (requestCode == REQ_SAVE_BACKUP_FILE) {
+            val content = pendingSaveContent
+            pendingSaveContent = null
+            var savedOk = false
+            if (resultCode == Activity.RESULT_OK && data?.data != null && content != null) {
+                try {
+                    contentResolver.openOutputStream(data.data!!)?.use { os ->
+                        os.write(content.toByteArray(Charsets.UTF_8))
+                        os.flush()
+                    }
+                    savedOk = true
+                } catch (_: Exception) {
+                    savedOk = false
+                }
+            }
+            if (this::webView.isInitialized && !isDestroyed) {
+                runOnUiThread {
+                    try {
+                        webView.evaluateJavascript("if(typeof window.onNativeFileSaved==='function')window.onNativeFileSaved($savedOk);", null)
+                    } catch (_: Exception) {}
+                }
+            }
+            return
+        }
+        if (requestCode == REQ_OPEN_BACKUP_FILE) {
+            if (resultCode == Activity.RESULT_OK && data?.data != null) {
+                val uri = data.data!!
+                networkExecutor.execute {
+                    val text = try {
+                        contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: ""
+                    } catch (_: Exception) {
+                        ""
+                    }
+                    val escText = JSONObject.quote(text)
+                    if (this@MainActivity::webView.isInitialized && !isDestroyed) {
+                        webView.post {
+                            try {
+                                webView.evaluateJavascript("if(typeof window.onNativeJsonBackupPicked==='function')window.onNativeJsonBackupPicked($escText);", null)
+                            } catch (_: Exception) {}
+                        }
+                    }
                 }
             }
             return

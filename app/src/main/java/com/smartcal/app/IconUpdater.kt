@@ -167,7 +167,7 @@ object IconUpdater {
                     val wdEn = enWds[(cal.get(Calendar.DAY_OF_WEEK) - 1).coerceIn(0, 6)]
                     dayNum = gd.toString()
                     shortMonth = EN_MONTHS[(gm - 1).coerceIn(0, 11)].take(3).uppercase()
-                    title = "$gd ${EN_MONTHS[(gm - 1).coerceIn(0, 11)]} ($gm) $gy ($wdEn)"
+                    title = "\u2066\u200E$gd ${EN_MONTHS[(gm - 1).coerceIn(0, 11)]} ($gm) $gy ($wdEn)\u2069"
                     body = "Smart Cal"
                 }
                 calType == "kurdish" || lang == "ku" -> {
@@ -175,13 +175,13 @@ object IconUpdater {
                     dayNum = toPersianDigits(jalali.day)
                     shortMonth = KU_MONTHS[(jalali.month - 1).coerceIn(0, 11)]
                     title = "${toPersianDigits(jalali.day)}ی ${KU_MONTHS[(jalali.month - 1).coerceIn(0, 11)]} ${toPersianDigits(kuYear)}"
-                    body = "$gd ${EN_MONTHS[(gm - 1).coerceIn(0, 11)]} $gy"
+                    body = "${toPersianDigits(jalali.day)} ${FA_MONTHS[(jalali.month - 1).coerceIn(0, 11)]} ${toPersianDigits(jalali.year)}  •  \u2066\u200E$gd ${EN_MONTHS[(gm - 1).coerceIn(0, 11)]} ($gm) $gy\u2069"
                 }
                 else -> {
                     dayNum = toPersianDigits(jalali.day)
                     shortMonth = FA_MONTHS[(jalali.month - 1).coerceIn(0, 11)]
                     title = "${toPersianDigits(jalali.day)} ${FA_MONTHS[(jalali.month - 1).coerceIn(0, 11)]} ${toPersianDigits(jalali.year)}"
-                    body = "$gd ${EN_MONTHS[(gm - 1).coerceIn(0, 11)]} $gy"
+                    body = "${toPersianDigits(jalali.day)} ${KU_MONTHS[(jalali.month - 1).coerceIn(0, 11)]} ${toPersianDigits(jalali.year + 1321)}  •  \u2066\u200E$gd ${EN_MONTHS[(gm - 1).coerceIn(0, 11)]} ($gm) $gy\u2069"
                 }
             }
 
