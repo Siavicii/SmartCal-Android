@@ -15,7 +15,10 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.Typeface
+import android.app.Activity
+import android.content.Intent
 import android.net.Uri
+import android.speech.RecognizerIntent
 import android.os.Build
 import android.os.Bundle
 import android.webkit.GeolocationPermissions
@@ -114,6 +117,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private var isRequestingPermission = false
+    private var pendingSpeechTargetId: String = ""
+    private val REQ_SPEECH_TO_TEXT = 3001
     private var userLeftApp = false
 
     override fun onUserLeaveHint() {
@@ -795,6 +800,45 @@ class MainActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
+        fun startVoiceDictation(targetInputId: String, langCode: String) {
+            runOnUiThread {
+                try {
+                    val hasMic = ContextCompat.checkSelfPermission(
+                        this@MainActivity,
+                        Manifest.permission.RECORD_AUDIO
+                    ) == PackageManager.PERMISSION_GRANTED
+                    if (!hasMic) {
+                        ActivityCompat.requestPermissions(
+                            this@MainActivity,
+                            arrayOf(Manifest.permission.RECORD_AUDIO),
+                            2002
+                        )
+                    }
+                    pendingSpeechTargetId = targetInputId
+                    val bcp47 = when (langCode) {
+                        "ku" -> "ckb-IQ"
+                        "en" -> "en-US"
+                        else -> "fa-IR"
+                    }
+                    val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                        putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                        putExtra(RecognizerIntent.EXTRA_LANGUAGE, bcp47)
+                        putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, bcp47)
+                        putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, false)
+                        putExtra(RecognizerIntent.EXTRA_PROMPT, if (langCode == "ku") "بە دەنگ قسە بکە..." else if (langCode == "en") "Speak your note..." else "صحبت کنید تا به متن تبدیل شود...")
+                    }
+                    if (intent.resolveActivity(packageManager) != null) {
+                        startActivityForResult(intent, REQ_SPEECH_TO_TEXT)
+                    } else {
+                        webView.evaluateJavascript("if(typeof onNativeVoiceError==='function')onNativeVoiceError('no_recognizer');", null)
+                    }
+                } catch (_: Exception) {
+                    webView.evaluateJavascript("if(typeof onNativeVoiceError==='function')onNativeVoiceError('err');", null)
+                }
+            }
+        }
+
+        @JavascriptInterface
         fun fetchUrlNative(urlString: String): String {
             return try {
                 val conn = (URL(urlString).openConnection() as HttpURLConnection).apply {
@@ -811,4 +855,29 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQ_SPEECH_TO_TEXT) {
+            val targetId = pendingSpeechTargetId
+            pendingSpeechTargetId = ""
+            if (resultCode == Activity.RESULT_OK && data != null) {
+                val matches = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                val spoken = matches?.firstOrNull()?.trim() ?: ""
+                if (spoken.isNotEmpty() && targetId.isNotEmpty()) {
+                    val escaped = org.json.JSONObject.quote(spoken)
+                    val tidEsc = org.json.JSONObject.quote(targetId)
+                    webView.post {
+                        webView.evaluateJavascript("if(typeof onNativeVoiceResult==='function')onNativeVoiceResult($tidEsc,$escaped);", null)
+                    }
+                    return
+                }
+            }
+            webView.post {
+                webView.evaluateJavascript("if(typeof onNativeVoiceError==='function')onNativeVoiceError('cancelled');", null)
+            }
+        }
+    }
+
 }
