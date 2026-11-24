@@ -838,20 +838,38 @@ class MainActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
-        fun fetchUrlNative(urlString: String): String {
-            return try {
-                val conn = (URL(urlString).openConnection() as HttpURLConnection).apply {
-                    connectTimeout = 8000
-                    readTimeout = 8000
-                    requestMethod = "GET"
-                    setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14) SmartCal/63.0")
+        fun fetchUrlNativeAsync(reqId: String, urlString: String) {
+            Thread {
+                val result = try {
+                    val conn = (URL(urlString).openConnection() as HttpURLConnection).apply {
+                        connectTimeout = 4500
+                        readTimeout = 4500
+                        requestMethod = "GET"
+                        setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14) SmartCal/72.0")
+                    }
+                    if (conn.responseCode in 200..299) {
+                        conn.inputStream.bufferedReader().use { it.readText() }
+                    } else ""
+                } catch (_: Exception) {
+                    ""
                 }
-                if (conn.responseCode in 200..299) {
-                    conn.inputStream.bufferedReader().use { it.readText() }
-                } else ""
-            } catch (_: Exception) {
-                ""
-            }
+                val idEsc = JSONObject.quote(reqId)
+                val resEsc = JSONObject.quote(result)
+                webView.post {
+                    try {
+                        webView.evaluateJavascript(
+                            "if(typeof window.__onNativeFetchDone==='function')window.__onNativeFetchDone($idEsc,$resEsc);",
+                            null
+                        )
+                    } catch (_: Exception) {}
+                }
+            }.start()
+        }
+
+        @JavascriptInterface
+        fun fetchUrlNative(urlString: String): String {
+            // Deprecated synchronous bridge: return empty immediately so JS main thread is NEVER blocked
+            return ""
         }
     }
 
