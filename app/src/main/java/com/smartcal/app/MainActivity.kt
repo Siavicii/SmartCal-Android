@@ -39,6 +39,12 @@ import androidx.core.graphics.drawable.IconCompat
 import androidx.core.graphics.ColorUtils
 import androidx.core.view.WindowCompat
 import android.app.KeyguardManager
+import android.hardware.biometrics.BiometricManager
+import android.hardware.biometrics.BiometricPrompt
+import android.os.CancellationSignal
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.view.HapticFeedbackConstants
 import android.view.WindowManager
 import androidx.core.view.WindowInsetsControllerCompat
@@ -790,13 +796,52 @@ class MainActivity : AppCompatActivity() {
         fun triggerHaptic(kind: String) {
             runOnUiThread {
                 try {
+                    val vibrator: Vibrator? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        val vm = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
+                        vm?.defaultVibrator
+                    } else {
+                        @Suppress("DEPRECATION")
+                        getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+                    }
+                    if (vibrator != null && vibrator.hasVibrator()) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            val effectId = when (kind) {
+                                "heavy" -> VibrationEffect.EFFECT_HEAVY_CLICK
+                                "medium" -> VibrationEffect.EFFECT_CLICK
+                                else -> VibrationEffect.EFFECT_TICK
+                            }
+                            vibrator.vibrate(VibrationEffect.createPredefined(effectId))
+                        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            val ms = when (kind) {
+                                "heavy" -> 28L
+                                "medium" -> 16L
+                                else -> 10L
+                            }
+                            val amp = when (kind) {
+                                "heavy" -> 220
+                                "medium" -> 160
+                                else -> 110
+                            }
+                            vibrator.vibrate(VibrationEffect.createOneShot(ms, amp))
+                        } else {
+                            @Suppress("DEPRECATION")
+                            vibrator.vibrate(if (kind == "heavy") 25L else 12L)
+                        }
+                        return@runOnUiThread
+                    }
+                } catch (_: Exception) {}
+                try {
                     if (this@MainActivity::webView.isInitialized) {
                         val code = when (kind) {
                             "heavy" -> HapticFeedbackConstants.LONG_PRESS
                             "medium" -> HapticFeedbackConstants.KEYBOARD_TAP
                             else -> HapticFeedbackConstants.CLOCK_TICK
                         }
-                        webView.performHapticFeedback(code)
+                        @Suppress("DEPRECATION")
+                        webView.performHapticFeedback(
+                            code,
+                            HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING or HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
+                        )
                     }
                 } catch (_: Exception) {}
             }
@@ -806,13 +851,56 @@ class MainActivity : AppCompatActivity() {
         fun requestDeviceAuth() {
             runOnUiThread {
                 try {
-                    val km = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
-                    @Suppress("DEPRECATION")
-                    val intent = km.createConfirmDeviceCredentialIntent("Smart Cal", "احراز هویت برای باز کردن قفل برنامه")
-                    if (intent != null) {
-                        startActivityForResult(intent, REQ_DEVICE_AUTH)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        val builder = BiometricPrompt.Builder(this@MainActivity)
+                            .setTitle("Smart Cal")
+                            .setSubtitle("احراز هویت با اثر انگشت یا قفل گوشی")
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                            builder.setAllowedAuthenticators(
+                                BiometricManager.Authenticators.BIOMETRIC_STRONG or
+                                    BiometricManager.Authenticators.BIOMETRIC_WEAK or
+                                    BiometricManager.Authenticators.DEVICE_CREDENTIAL
+                            )
+                        } else if (Build.VERSION.SDK_INT == Build.VERSION_CODES.Q) {
+                            @Suppress("DEPRECATION")
+                            builder.setDeviceCredentialAllowed(true)
+                        } else {
+                            builder.setNegativeButton("انصراف", mainExecutor) { _, _ ->
+                                webView.evaluateJavascript("if(typeof window.onNativeDeviceAuthResult==='function')window.onNativeDeviceAuthResult(false);", null)
+                            }
+                        }
+                        val prompt = builder.build()
+                        val cancelSignal = CancellationSignal()
+                        prompt.authenticate(
+                            cancelSignal,
+                            mainExecutor,
+                            object : BiometricPrompt.AuthenticationCallback() {
+                                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult?) {
+                                    runOnUiThread {
+                                        if (this@MainActivity::webView.isInitialized && !isDestroyed) {
+                                            webView.evaluateJavascript("if(typeof window.onNativeDeviceAuthResult==='function')window.onNativeDeviceAuthResult(true);", null)
+                                        }
+                                    }
+                                }
+
+                                override fun onAuthenticationError(errorCode: Int, errString: CharSequence?) {
+                                    runOnUiThread {
+                                        if (this@MainActivity::webView.isInitialized && !isDestroyed) {
+                                            webView.evaluateJavascript("if(typeof window.onNativeDeviceAuthResult==='function')window.onNativeDeviceAuthResult(false);", null)
+                                        }
+                                    }
+                                }
+                            }
+                        )
                     } else {
-                        webView.evaluateJavascript("if(typeof window.onNativeDeviceAuthResult==='function')window.onNativeDeviceAuthResult(true);", null)
+                        val km = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+                        @Suppress("DEPRECATION")
+                        val intent = km.createConfirmDeviceCredentialIntent("Smart Cal", "احراز هویت برای باز کردن قفل برنامه")
+                        if (intent != null) {
+                            startActivityForResult(intent, REQ_DEVICE_AUTH)
+                        } else {
+                            webView.evaluateJavascript("if(typeof window.onNativeDeviceAuthResult==='function')window.onNativeDeviceAuthResult(true);", null)
+                        }
                     }
                 } catch (_: Exception) {
                     webView.evaluateJavascript("if(typeof window.onNativeDeviceAuthResult==='function')window.onNativeDeviceAuthResult(false);", null)
