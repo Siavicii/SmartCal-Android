@@ -1,15 +1,22 @@
 #!/usr/bin/env python3
 """
-SmartCal AI Daily Horoscope Updater (v72)
+SmartCal AI Daily Horoscope Updater (v75.1)
 Generates fresh, eloquent, non-repetitive daily horoscopes for all 12 zodiac signs
 in Persian (fa), Sorani Kurdish (ku), and English (en) via Gemini API
 and writes daily_fal.json + app/src/main/assets/www/daily_fal.json.
+
+Features:
+- Smart idempotency on scheduled runs (backup cron slots exit early with 0 API usage
+  once today's daily_fal.json is already complete for all 3 languages).
+- Secure x-goog-api-key header (never places API key in URLs or logs).
+- Fast stable Flash model prioritization + maxOutputTokens=8192 to prevent JSON truncation.
 """
 import datetime
 import json
 import os
 import re
 import sys
+import time
 import urllib.error
 import urllib.request
 
@@ -29,12 +36,46 @@ SIGNS = [
 ]
 
 
+def load_existing_fal(path="daily_fal.json") -> dict:
+    try:
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, dict):
+                return data
+    except Exception:
+        pass
+    return {}
+
+
+def is_already_complete_for_date(existing: dict, date_str: str) -> bool:
+    if not isinstance(existing, dict):
+        return False
+    if existing.get("date") != date_str:
+        return False
+    model = str(existing.get("model", "")).strip()
+    if not model or model == "pending-first-action-run":
+        return False
+    langs = existing.get("langs")
+    if not isinstance(langs, dict):
+        return False
+    for lang in ("fa", "ku", "en"):
+        lmap = langs.get(lang)
+        if not isinstance(lmap, dict) or len(lmap) < 10:
+            return False
+    return True
+
+
 def discover_gemini_models(api_key: str):
     url = "https://generativelanguage.googleapis.com/v1beta/models"
     req = urllib.request.Request(url, headers={"x-goog-api-key": api_key}, method="GET")
     with urllib.request.urlopen(req, timeout=20) as resp:
         data = json.loads(resp.read().decode("utf-8"))
-    excluded = ("image", "audio", "tts", "embedding", "vision")
+
+    excluded = (
+        "image", "audio", "tts", "embedding", "vision",
+        "robotics", "computer-use", "deep-research", "veo", "imagen", "gemma"
+    )
     candidates = []
     for m in data.get("models", []):
         name = m.get("name", "")
@@ -42,10 +83,21 @@ def discover_gemini_models(api_key: str):
         low = name.lower()
         if "generateContent" in methods and "gemini" in low and not any(x in low for x in excluded):
             candidates.append(name.replace("models/", ""))
-    flash = [c for c in candidates if "flash" in c.lower() and "lite" not in c.lower()]
-    lite = [c for c in candidates if "flash-lite" in c.lower()]
-    other = [c for c in candidates if c not in flash and c not in lite]
-    ordered = flash + lite + other
+
+    def rank(model_name: str):
+        low = model_name.lower()
+        is_preview = ("preview" in low or "exp" in low or "thinking" in low)
+        if "flash" in low and "lite" not in low and not is_preview:
+            return (0, model_name)
+        if "flash-lite" in low and not is_preview:
+            return (1, model_name)
+        if "flash" in low:
+            return (2, model_name)
+        if not is_preview:
+            return (3, model_name)
+        return (4, model_name)
+
+    ordered = sorted(candidates, key=rank)
     print("Available Gemini models:", ", ".join(ordered[:6]))
     return ordered
 
@@ -55,25 +107,39 @@ def call_gemini_json(api_key: str, models: list, prompt: str):
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
             "temperature": 0.85,
+            "maxOutputTokens": 8192,
             "responseMimeType": "application/json",
         },
     }).encode("utf-8")
 
     last_err = None
-    for model in models[:5]:
+    for model in models[:6]:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
         req = urllib.request.Request(
-            url, data=payload, headers={"Content-Type": "application/json", "x-goog-api-key": api_key}, method="POST"
+            url,
+            data=payload,
+            headers={"Content-Type": "application/json", "x-goog-api-key": api_key},
+            method="POST",
         )
         try:
-            with urllib.request.urlopen(req, timeout=90) as resp:
+            with urllib.request.urlopen(req, timeout=75) as resp:
                 res = json.loads(resp.read().decode("utf-8"))
             raw = res["candidates"][0]["content"]["parts"][0]["text"].strip()
             raw = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw, flags=re.IGNORECASE).strip()
             return json.loads(raw), model
+        except urllib.error.HTTPError as e:
+            body = ""
+            try:
+                body = e.read().decode("utf-8", errors="ignore")[:180]
+            except Exception:
+                pass
+            last_err = f"HTTP {e.code}: {body}"
+            print(f"Model {model} failed: HTTP {e.code}")
+            time.sleep(1.5)
         except Exception as e:
-            last_err = e
+            last_err = str(e)
             print(f"Model {model} failed: {e}")
+            time.sleep(1.0)
     raise RuntimeError(f"All Gemini models failed: {last_err}")
 
 
@@ -119,6 +185,8 @@ Rules: lucky_num must be an integer 1-9, and all 3 variants per sign must be gen
 
 def validate_lang_map(obj: dict) -> dict:
     clean = {}
+    if not isinstance(obj, dict):
+        return clean
     for i in range(12):
         arr = obj.get(str(i))
         if not isinstance(arr, list) or not arr:
@@ -150,6 +218,18 @@ def validate_lang_map(obj: dict) -> dict:
 
 
 def main():
+    now_utc = datetime.datetime.now(datetime.timezone.utc)
+    now_irst = now_utc + datetime.timedelta(hours=3, minutes=30)
+    date_str = now_irst.strftime("%Y-%m-%d")
+
+    event_name = os.environ.get("GITHUB_EVENT_NAME", "").strip().lower()
+    force_flag = os.environ.get("FORCE_UPDATE", "").strip().lower() in ("1", "true", "yes")
+    existing = load_existing_fal("daily_fal.json")
+
+    if event_name == "schedule" and not force_flag and is_already_complete_for_date(existing, date_str):
+        print(f"daily_fal.json is already complete for {date_str} (model={existing.get('model')}); skipping backup cron run.")
+        sys.exit(0)
+
     api_key = os.environ.get("GEMINI_API_KEY", "").strip()
     if not api_key:
         print("GEMINI_API_KEY is not set; skipping AI horoscope update.")
@@ -160,10 +240,6 @@ def main():
         print("No compatible Gemini models found.")
         sys.exit(1)
 
-    now_utc = datetime.datetime.now(datetime.timezone.utc)
-    now_irst = now_utc + datetime.timedelta(hours=3, minutes=30)
-    date_str = now_irst.strftime("%Y-%m-%d")
-
     output = {
         "updated_at": now_irst.strftime("%Y-%m-%d %H:%M IRST"),
         "date": date_str,
@@ -172,7 +248,10 @@ def main():
         "langs": {},
     }
 
+    existing_langs = existing.get("langs", {}) if isinstance(existing.get("langs"), dict) else {}
     used_model = ""
+    fresh_count = 0
+
     for lang in ("fa", "ku", "en"):
         try:
             raw_map, model = call_gemini_json(api_key, models, build_prompt(lang, date_str))
@@ -180,14 +259,19 @@ def main():
             if len(cleaned) >= 10:
                 output["langs"][lang] = cleaned
                 used_model = model
+                fresh_count += 1
                 print(f"Generated {lang}: {len(cleaned)}/12 signs OK via {model}")
             else:
-                print(f"Warning: {lang} returned only {len(cleaned)} valid signs; skipped.")
+                print(f"Warning: {lang} returned only {len(cleaned)} valid signs; keeping fallback if present.")
+                if lang in existing_langs and existing_langs[lang]:
+                    output["langs"][lang] = existing_langs[lang]
         except Exception as e:
             print(f"Error generating {lang}: {e}")
+            if lang in existing_langs and existing_langs[lang]:
+                output["langs"][lang] = existing_langs[lang]
 
-    if not output["langs"]:
-        print("No valid language data generated; keeping existing daily_fal.json.")
+    if fresh_count == 0 or not output["langs"]:
+        print("No valid fresh language data generated; keeping existing daily_fal.json.")
         sys.exit(1)
 
     output["model"] = used_model
