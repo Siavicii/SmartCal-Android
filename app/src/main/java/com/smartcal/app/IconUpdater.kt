@@ -293,10 +293,19 @@ object IconUpdater {
             set(Calendar.SECOND, 5)
             set(Calendar.MILLISECOND, 0)
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, nextMidnight.timeInMillis, pi)
+        val canExact = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            am.canScheduleExactAlarms()
         } else {
-            am.set(AlarmManager.RTC_WAKEUP, nextMidnight.timeInMillis, pi)
+            true
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (canExact) {
+                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, nextMidnight.timeInMillis, pi)
+            } else {
+                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, nextMidnight.timeInMillis, pi)
+            }
+        } else {
+            am.setExact(AlarmManager.RTC_WAKEUP, nextMidnight.timeInMillis, pi)
         }
     }
 }

@@ -84,8 +84,8 @@ def g2j(gy, gm, gd):
     return jy, 7 + div(k, 30), mod(k, 30) + 1
 
 def discover_gemini_models(api_key):
-    url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
-    req = urllib.request.Request(url, method="GET")
+    url = "https://generativelanguage.googleapis.com/v1beta/models"
+    req = urllib.request.Request(url, headers={"x-goog-api-key": api_key}, method="GET")
     with urllib.request.urlopen(req, timeout=20) as resp:
         data = json.loads(resp.read().decode("utf-8"))
     excluded = ("image", "audio", "tts", "embedding", "vision")
@@ -111,8 +111,8 @@ def call_gemini_json(api_key, models, prompt):
 
     last_err = None
     for model in models[:5]:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
-        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+        req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json", "x-goog-api-key": api_key}, method="POST")
         try:
             with urllib.request.urlopen(req, timeout=60) as resp:
                 res = json.loads(resp.read().decode("utf-8"))

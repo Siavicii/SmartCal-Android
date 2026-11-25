@@ -129,6 +129,8 @@ class MainActivity : AppCompatActivity() {
     private var isRequestingPermission = false
     private var pendingSpeechTargetId: String = ""
     private var pendingSpeechLang: String = "fa"
+    private val REQ_PERM_VOICE_MIC = 2002
+    private val REQ_PERM_WEB_AUDIO = 2003
     private val REQ_SPEECH_TO_TEXT = 3001
     private val REQ_DEVICE_AUTH = 3002
     private val REQ_FILE_CHOOSER = 3003
@@ -208,11 +210,11 @@ class MainActivity : AppCompatActivity() {
             javaScriptEnabled = true
             domStorageEnabled = true
             databaseEnabled = true
-            allowFileAccess = true
+            allowFileAccess = false
             allowContentAccess = true
             setGeolocationEnabled(true)
             cacheMode = WebSettings.LOAD_DEFAULT
-            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
             mediaPlaybackRequiresUserGesture = false
         }
 
@@ -228,6 +230,26 @@ class MainActivity : AppCompatActivity() {
                             requestEssentialPermissionsIfNeeded()
                         }
                     }, 1500L)
+                }
+            }
+
+            override fun shouldOverrideUrlLoading(
+                view: WebView?,
+                request: WebResourceRequest?
+            ): Boolean {
+                val uri = request?.url ?: return false
+                val host = uri.host ?: ""
+                if (host.equals("appassets.androidplatform.net", ignoreCase = true)) {
+                    return false
+                }
+                return try {
+                    val extIntent = Intent(Intent.ACTION_VIEW, uri).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    startActivity(extIntent)
+                    true
+                } catch (_: Exception) {
+                    true
                 }
             }
 
@@ -260,7 +282,7 @@ class MainActivity : AppCompatActivity() {
                     ActivityCompat.requestPermissions(
                         this@MainActivity,
                         arrayOf(Manifest.permission.RECORD_AUDIO),
-                        2002
+                        REQ_PERM_WEB_AUDIO
                     )
                 } else {
                     try {
@@ -349,7 +371,7 @@ class MainActivity : AppCompatActivity() {
                 webView.evaluateJavascript("window.onNativeCalendarPermissionResult && window.onNativeCalendarPermissionResult($granted);", null)
             }
         }
-        if (requestCode == 2002) {
+        if (requestCode == REQ_PERM_VOICE_MIC) {
             val granted = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
             val targetId = pendingSpeechTargetId
             val langCode = pendingSpeechLang
@@ -363,16 +385,20 @@ class MainActivity : AppCompatActivity() {
                     } catch (_: Exception) {}
                 }
             }
+            return
         }
-        val req = pendingWebPermRequest
-        pendingWebPermRequest = null
-        if (req != null) {
-            val granted = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
-            runOnUiThread {
-                try {
-                    if (granted) req.grant(req.resources) else req.deny()
-                } catch (_: Exception) {}
+        if (requestCode == REQ_PERM_WEB_AUDIO) {
+            val req = pendingWebPermRequest
+            pendingWebPermRequest = null
+            if (req != null) {
+                val granted = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
+                runOnUiThread {
+                    try {
+                        if (granted) req.grant(req.resources) else req.deny()
+                    } catch (_: Exception) {}
+                }
             }
+            return
         }
     }
 
@@ -504,6 +530,13 @@ class MainActivity : AppCompatActivity() {
         super.onConfigurationChanged(newConfig)
         val isNight = (newConfig.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
         pushNativeDarkStateToWebView(isNight)
+    }
+
+    override fun onPause() {
+        if (::webView.isInitialized) {
+            try { webView.onPause() } catch (_: Exception) {}
+        }
+        super.onPause()
     }
 
     override fun onResume() {
@@ -1062,10 +1095,11 @@ class MainActivity : AppCompatActivity() {
                 if (!hasMic) {
                     pendingSpeechTargetId = targetInputId
                     pendingSpeechLang = langCode
+                    isRequestingPermission = true
                     ActivityCompat.requestPermissions(
                         this@MainActivity,
                         arrayOf(Manifest.permission.RECORD_AUDIO),
-                        2002
+                        REQ_PERM_VOICE_MIC
                     )
                     return@runOnUiThread
                 }
@@ -1082,7 +1116,7 @@ class MainActivity : AppCompatActivity() {
                         connectTimeout = 4500
                         readTimeout = 4500
                         requestMethod = "GET"
-                        setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14) SmartCal/74.0")
+                        setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14) SmartCal/75.0")
                     }
                     if (conn.responseCode in 200..299) {
                         conn.inputStream.bufferedReader().use { it.readText() }
@@ -1107,11 +1141,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        @JavascriptInterface
-        fun fetchUrlNative(urlString: String): String {
-            // Deprecated synchronous bridge: return empty immediately so JS main thread is NEVER blocked
-            return ""
-        }
+
     }
 
     @Deprecated("Deprecated in Java")
