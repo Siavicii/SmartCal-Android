@@ -2,6 +2,7 @@ package com.smartcal.app
 
 import android.Manifest
 import android.app.AlarmManager
+import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.ComponentName
@@ -43,6 +44,15 @@ object IconUpdater {
         "January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December"
     )
+    private val FA_WEEKDAYS = arrayOf(
+        "یک‌شنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنج‌شنبه", "جمعه", "شنبه"
+    )
+    private val KU_WEEKDAYS = arrayOf(
+        "یەکشەممە", "دووشەممە", "سێشەممە", "چوارشەممە", "پێنجشەممە", "هەینی", "شەممە"
+    )
+    private val EN_WEEKDAYS = arrayOf(
+        "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
+    )
 
     private fun toPersianDigits(n: Int): String {
         val map = charArrayOf('۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹')
@@ -54,6 +64,28 @@ object IconUpdater {
             .edit()
             .putBoolean(KEY_STATUS_NOTIF_ENABLED, enabled)
             .apply()
+        if (enabled) {
+            try { scheduleNextMidnight(context) } catch (_: Exception) {}
+        }
+    }
+
+    private fun ensureStatusNotificationChannel(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            try {
+                val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                if (nm.getNotificationChannel(STATUS_CHANNEL_ID) == null) {
+                    val statusChannel = NotificationChannel(
+                        STATUS_CHANNEL_ID,
+                        "تاریخ روز در نوار وضعیت",
+                        NotificationManager.IMPORTANCE_LOW
+                    ).apply {
+                        description = "نمایش دائمی تاریخ روز در نوار وضعیت بالای گوشی"
+                        setShowBadge(false)
+                    }
+                    nm.createNotificationChannel(statusChannel)
+                }
+            } catch (_: Exception) {}
+        }
     }
 
     fun updatePreferencesAndIcon(context: Context, calType: String?, lang: String?, deferIconSwitch: Boolean = false) {
@@ -156,31 +188,31 @@ object IconUpdater {
             val gd = cal.get(Calendar.DAY_OF_MONTH)
             val jalali = JalaliHelper.gregorianToJalali(gy, gm, gd)
 
+            ensureStatusNotificationChannel(context)
+
+            val dowIdx = (cal.get(Calendar.DAY_OF_WEEK) - 1).coerceIn(0, 6)
             val dayNum: String
-            val shortMonth: String
             val title: String
             val body: String
 
             when {
                 calType == "gregorian" || lang == "en" -> {
-                    val enWds = arrayOf("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
-                    val wdEn = enWds[(cal.get(Calendar.DAY_OF_WEEK) - 1).coerceIn(0, 6)]
+                    val wdEn = EN_WEEKDAYS[dowIdx]
                     dayNum = gd.toString()
-                    shortMonth = EN_MONTHS[(gm - 1).coerceIn(0, 11)].take(3).uppercase()
                     title = "\u2066\u200E$gd ${EN_MONTHS[(gm - 1).coerceIn(0, 11)]} ($gm) $gy ($wdEn)\u2069"
-                    body = "Smart Cal"
+                    body = "${toPersianDigits(jalali.day)} ${FA_MONTHS[(jalali.month - 1).coerceIn(0, 11)]} ${toPersianDigits(jalali.year)}  •  ${toPersianDigits(jalali.day)} ${KU_MONTHS[(jalali.month - 1).coerceIn(0, 11)]} ${toPersianDigits(jalali.year + 1321)}"
                 }
                 calType == "kurdish" || lang == "ku" -> {
                     val kuYear = jalali.year + 1321
+                    val wdKu = KU_WEEKDAYS[dowIdx]
                     dayNum = toPersianDigits(jalali.day)
-                    shortMonth = KU_MONTHS[(jalali.month - 1).coerceIn(0, 11)]
-                    title = "${toPersianDigits(jalali.day)}ی ${KU_MONTHS[(jalali.month - 1).coerceIn(0, 11)]} ${toPersianDigits(kuYear)}"
+                    title = "$wdKu ${toPersianDigits(jalali.day)}ی ${KU_MONTHS[(jalali.month - 1).coerceIn(0, 11)]} ${toPersianDigits(kuYear)}"
                     body = "${toPersianDigits(jalali.day)} ${FA_MONTHS[(jalali.month - 1).coerceIn(0, 11)]} ${toPersianDigits(jalali.year)}  •  \u2066\u200E$gd ${EN_MONTHS[(gm - 1).coerceIn(0, 11)]} ($gm) $gy\u2069"
                 }
                 else -> {
+                    val wdFa = FA_WEEKDAYS[dowIdx]
                     dayNum = toPersianDigits(jalali.day)
-                    shortMonth = FA_MONTHS[(jalali.month - 1).coerceIn(0, 11)]
-                    title = "${toPersianDigits(jalali.day)} ${FA_MONTHS[(jalali.month - 1).coerceIn(0, 11)]} ${toPersianDigits(jalali.year)}"
+                    title = "$wdFa ${toPersianDigits(jalali.day)} ${FA_MONTHS[(jalali.month - 1).coerceIn(0, 11)]} ${toPersianDigits(jalali.year)}"
                     body = "${toPersianDigits(jalali.day)} ${KU_MONTHS[(jalali.month - 1).coerceIn(0, 11)]} ${toPersianDigits(jalali.year + 1321)}  •  \u2066\u200E$gd ${EN_MONTHS[(gm - 1).coerceIn(0, 11)]} ($gm) $gy\u2069"
                 }
             }
