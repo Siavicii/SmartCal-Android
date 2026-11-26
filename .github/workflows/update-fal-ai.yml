@@ -2,6 +2,7 @@ name: AI Daily Horoscope Updater
 
 on:
   schedule:
+    # Staggered non-round UTC minutes to avoid GitHub Actions :00/:30 queue drops
     # 05:47 IRST (primary), 08:13 IRST (backup 1), 12:49 IRST (backup 2)
     - cron: "17 2 * * *"
     - cron: "43 4 * * *"
