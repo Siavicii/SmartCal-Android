@@ -1,7 +1,842 @@
 {
-  "updated_at": "2026-11-23 06:00 IRST",
-  "date": "2026-11-23",
+  "updated_at": "2026-11-26 10:25 IRST",
+  "date": "2026-11-26",
   "provider": "Gemini AI",
-  "model": "pending-first-action-run",
-  "langs": {}
+  "model": "gemini-3.6-flash",
+  "langs": {
+    "fa": {
+      "0": [
+        {
+          "general": "امروز انرژی سرشاری برای شروع دوباره و قدم برداشتن در مسیرهای نرفته دارید. شجاعت درونی شما راه را برای موفقیت‌های جدید هموار می‌سازد.",
+          "work": "در جلسات کاری با اعتمادبه‌نفس سخن بگویید و فرصت‌های جدید مالی را هوشمندانه شکار کنید.",
+          "emotion": "یک گفتگو شفاف و صمیمی، دلهره‌های قدیمی را از رابطه عاطفی شما برطرف می‌سازد.",
+          "lucky_num": 5,
+          "lucky_color": "قرمز یاقوتی"
+        },
+        {
+          "general": "خورشید اقبال شما امروز با درخششی تازه طلوع می‌کند. از این پویایی برای ایجاد تغییرات مثبت در روش زندگی‌تان بهره ببرید.",
+          "work": "تصمیم‌گیری‌های پرریسک را با کمی احتیاط و مشورت پیش ببرید تا سرمایه‌تان امن بماند.",
+          "emotion": "ابراز محبت بی‌دریغ و صادقانه، گرما بخش کانون خانوادگی شما در عصر امروز خواهد بود.",
+          "lucky_num": 9,
+          "lucky_color": "نارنجی طلایی"
+        },
+        {
+          "general": "اراده فولادین شما هر مانعی را از سر راه برمی‌دارد. تمرکز بر اهداف بلندمدت، احساس رضایت درونی عمیقی به همراه دارد.",
+          "work": "ایده‌های خلاقانه خود را کتبی کنید و از تجربه همکاران قدیمی برای بهبود عملکرد استفاده نمائید.",
+          "emotion": "امشب زمانی عالی برای ترتیب دادن یک شام آرام و خلق خاطره‌ای دلنشین با عزیزان است.",
+          "lucky_num": 1,
+          "lucky_color": "ارغوانی"
+        }
+      ],
+      "1": [
+        {
+          "general": "آرامش درونی شما امروز بهترین پناهگاه در برابر شلوغی‌های پیرامون است. صبوری و متانت شما تقدیر همگان را برمی‌انگیزد.",
+          "work": "بررسی مجدد حساب‌های مالی به شما دید روشن‌تری برای برنامه‌ریزی بودجه ماه آینده می‌دهد.",
+          "emotion": "شنیدن فعالانه صحبت‌های شریک زندگی‌تان، پیوند قلبی شما را از هر زمان دیگری محکم‌تر می‌کند.",
+          "lucky_num": 6,
+          "lucky_color": "سبز زمردی"
+        },
+        {
+          "general": "ثبات و پایداری کلید موفقیت امروز شماست. به مسیر پرتلاشی که پیموده‌اید اعتماد کامل داشته باشید.",
+          "work": "روی کارهای نیمه‌کاره تمرکز کنید تا با پایان دادن به آن‌ها تمرکز ذهنی بهتری به دست آورید.",
+          "emotion": "یک هدیه کوچک یا پیامی پرمهر، لبخند رضایت را بر لب عزیزان‌تان خواهد نشاند.",
+          "lucky_num": 4,
+          "lucky_color": "قهوه‌ای خاکی"
+        },
+        {
+          "general": "زیبایی‌های کوچک اطراف خود را درک کنید و انرژی مثبت طبیعت را برای آرامش ذهن جذب نمایید.",
+          "work": "از انضباط ذاتی خود برای سامان دادن به گره‌های پیچیده شغلی نهایت استفاده را ببریدو",
+          "emotion": "گفتگو درباره برنامه‌ها و آرزوهای مشترک، هرگونه سوءتفاهم را به کلی از بین می‌برد.",
+          "lucky_num": 2,
+          "lucky_color": "صورتی ملایم"
+        }
+      ],
+      "2": [
+        {
+          "general": "ذهن پویا و کنجکاو شما امروز راه‌های تازه‌ای برای آموزش و یادگیری می‌یابد. خبرهای خوشی به گوشتان می‌رسد.",
+          "work": "ارتباطات کاری خود را گسترش دهید زیرا یک پیشنهاد سودآور در سایه همین تعاملات شکل می‌گیرد.",
+          "emotion": "همدلی و شنیدن صبورانه، بهترین مرهم برای بی‌حوصلگی‌های پنهان اطرافیانتان است.",
+          "lucky_num": 3,
+          "lucky_color": "زرد لیمویی"
+        },
+        {
+          "general": "میل به گفتگو و تعامل سازنده با دیگران امروز در شما به اوج می‌رسد. از این فرصت برای تحکیم جایگاهتان استفاده کنید.",
+          "work": "انعطاف‌پذیری در مذاکرات تجاری، شما را به توافقی بسیار بهتر از انتظارات اولیه می‌رساند.",
+          "emotion": "بیان صریح و بدون سانسور احساسات، صمیمیت ازدست‌رفته را به زندگی عاطفی‌تان بازمی‌گرداند.",
+          "lucky_num": 7,
+          "lucky_color": "نقره‌ای"
+        },
+        {
+          "general": "امروز ایده‌های متعدد و جذابی به ذهنتان می‌رسد، فقط کافی است آن‌ها را اولویت‌بندی کنید.",
+          "work": "از انجام همزمان چند کار پراکنده دست بکشید و تمام توان خود را روی هدف اصلی متمرکز سازید.",
+          "emotion": "دیداری کوتاه اما باکیفیت با یک دوست قدیمی، روحیه و انگیزه بالایی به شما تزریق می‌کند.",
+          "lucky_num": 8,
+          "lucky_color": "آبی آسمانی"
+        }
+      ],
+      "3": [
+        {
+          "general": "حس ششم و شهود قوی شما امروز بهترین راهنما در اتخاذ تصمیمات مهم زندگی خواهد بود.",
+          "work": "تصمیم‌گیری‌های مالی را دقیقاً بر اساس محاسبات واقعی و نه صرفاً احساسات لحظه‌ای انجام دهید.",
+          "emotion": "خانه و محفل خانوادگی امن‌ترین جایگاه برای تجدید قوای عاطفی و احساس آرامش شماست.",
+          "lucky_num": 2,
+          "lucky_color": "سفید مرواریدی"
+        },
+        {
+          "general": "مهر و عطوفت در وجودتان موج می‌زند؛ این انرژی شفابخش را از خود و نزدیکانتان دریغ نکنید.",
+          "work": "مشارکت و همکاری با همکاران نتائج بسیار بهتری نسبت به تلاش‌های یک‌جانبه خواهد داشت.",
+          "emotion": "با گشودن آغوش مهربانی و بخشش، دلخوری‌های کهنه را برای همیشه به فراموشی بسپارید.",
+          "lucky_num": 7,
+          "lucky_color": "نیلی"
+        },
+        {
+          "general": "امروز زمان فوق‌العاده‌ای برای پرداختن به خودشناسی، سکوت و مراقبه برای دستیابی به تعادل روان است.",
+          "work": "وظایف امروز را با نظم و بدون تعلل انجام دهید تا فشار کاری روزهای آینده کاهش یابد.",
+          "emotion": "توجه به نیازهای روحی شریک عاطفی‌تان، نوری تازه و گرم به روابطتان می‌تاباند.",
+          "lucky_num": 4,
+          "lucky_color": "آبی ملایم"
+        }
+      ],
+      "4": [
+        {
+          "general": "درخشش و جاذبه طبیعی شما امروز نگاه‌ها را به سوی شما جلب می‌کند. از این نفوذ به نیکی بهره ببرید.",
+          "work": "رهبری پروژه‌های تازه را با شجاعت بر عهده بگیرید و قدرتمندانه توانمندی‌هایتان را اثبات کنید.",
+          "emotion": "تقدیر و تمجید واقعی از عزیزان، صمیمیت و عشق را در فضای خانه چندبرابر می‌کند.",
+          "lucky_num": 1,
+          "lucky_color": "طلایی"
+        },
+        {
+          "general": "اعتمادبه‌نفس بالا و عزمی راسخ شما را در رسیدن به اهداف بزرگتان یاری می‌رساند.",
+          "work": "پیشنهادهای معاملاتی را با دقت بررسی کرده و در خریدهای پرهزینه عجله به خرج ندهید.",
+          "emotion": "لحظاتی شاد و پر از خنده را در کنار کانون گرم خانواده و دوستان نزدیک سپری کنید.",
+          "lucky_num": 8,
+          "lucky_color": "کهربایی"
+        },
+        {
+          "general": "امروز انرژی خلاقانه سرشاری در وجودتان نهفته است که منتظر فرصتی برای شکوفایی است.",
+          "work": "برنامه‌ریزی دقیق مالی انجام دهید تا منابع ارزشمندتان به بهترین شکل ممکن مدیریت شوند.",
+          "emotion": "غرور بیجا را کنار بگذارید تا مهر و عشق بدون مانع میان شما و فرد محبوبتان جریان یابد.",
+          "lucky_num": 5,
+          "lucky_color": "نارنجی"
+        }
+      ],
+      "5": [
+        {
+          "general": "انضباط و دقت شما به جزئیات، امروز کلید حل پیچیده‌ترین مسائل و ابهامات خواهد بود.",
+          "work": "جزئیات قراردادها یا گزارش‌های مالی را با دقت بررسی کنید تا از بروز خطاهای احتمالی جلوگیری شود.",
+          "emotion": "با کلامی نرم و لحنی آرام به گفتگو درباره دغدغه‌های مشترک با همسرتان بپردازید.",
+          "lucky_num": 5,
+          "lucky_color": "سبز زیتونی"
+        },
+        {
+          "general": "تمرکز بر کیفیت عالی است، اما اجازه ندهید کمال‌گرایی بیش‌ازحد شما را دچار خستگی کند.",
+          "work": "سازماندهی مجدد محیط کار و اولویت‌ها، سردرگمی‌ها را برطرف و بازدهی را مضاعف می‌کند.",
+          "emotion": "قدردانی از زحمات کوچک خانواده، پیوند و صمیمیت بی‌نظیری میان شما ایجاد می‌کند.",
+          "lucky_num": 3,
+          "lucky_color": "کرم"
+        },
+        {
+          "general": "سلامت جسم و آرامش ذهن خود را در اولویت قرار داده و زمانی را به استراحت اختصاص دهید.",
+          "work": "برقراری نظم در امور جاری، سرعت پیشرفت پروژه‌های شغلی شما را به‌طور محسوس افزایش می‌دهد.",
+          "emotion": "پذیرش تفاوت‌های فکری دیگران، تداوم آرامش را در روابط عاطفی شما تضمین می‌نماید.",
+          "lucky_num": 9,
+          "lucky_color": "خاکی"
+        }
+      ],
+      "6": [
+        {
+          "general": "تعادل و هارمونی امروز در تمام ابعاد زندگی شما جاری می‌شود. از این لحظات آرام لذت ببرید.",
+          "work": "با دیپلماسی و هوشمندی، سوءتفاهم‌های کاری پیش‌آمده را به نفع همه گروه‌ها حل‌وفصل کنید.",
+          "emotion": "گوش دادن به صدای قلب عزیزان، هماهنگی عاطفی عمیق و حس درک متقابل خلق می‌کند.",
+          "lucky_num": 6,
+          "lucky_color": "صورتی"
+        },
+        {
+          "general": "نگاه زیبایی‌شناسانه شما امروز محیط اطرافتان را دلپذیرتر و پرانرژی تر از همیشه می‌سازد.",
+          "work": "در خریدهای تجاری و سرمایه‌گذاری، توازن منطقی میان دخل و خرج را حتماً حفظ نمایید.",
+          "emotion": "ابراز عشق خالصانه و بدون چشم‌داشت، پاسخی گرم و محبت‌آمیز به همراه خواهد داشت.",
+          "lucky_num": 4,
+          "lucky_color": "آبی لاجوردی"
+        },
+        {
+          "general": "تصمیم‌گیری صریح و قاطعانه، شما را از بلاتکلیفی‌های آزاردهنده نجات خواهد داد.",
+          "work": "شراکت‌های کاری جدید افق‌های تازه و بسیار پرسودی را پیش روی شما می‌گشاید.",
+          "emotion": "برنامه‌ریزی یک قرار عاشقانه یا تفریح دو نفره، خستگی روزهای گذشته را از تنتان می‌زداید.",
+          "lucky_num": 2,
+          "lucky_color": "یاسی"
+        }
+      ],
+      "7": [
+        {
+          "general": "قدرت درونی و نفوذ کلام شما امروز فوق‌العاده اثرگذار و انگیزه‌بخش است.",
+          "work": "رازهای تجاری و ایده‌های ارزش‌آفرین خود را پیش از به ثمر رسیدن با هر کسی مطرح نکنید.",
+          "emotion": "اعتماد متقابل و صداقت، پایه و اساس صمیمیت عاطفی عمیق امروز شما با شریکتان است.",
+          "lucky_num": 9,
+          "lucky_color": "عنابی"
+        },
+        {
+          "general": "امروز فرصت بی‌نظیری برای رهاسازی باورهای محدودکننده و تجربه یک تحول درونی است.",
+          "work": "تحلیل دقیق بازار یا حوزه تخصصی‌تان، سود مالی قابل توجهی در آینده نزدیک می‌آفریند.",
+          "emotion": "صداقت و یکرنگی کامل با نزدیکان، هرگونه سوءظن را به حس اطمینان تبدیل می‌کند.",
+          "lucky_num": 8,
+          "lucky_color": "مشکی"
+        },
+        {
+          "general": "ذهن تیزبین شما کوچک‌ترین ناهماهنگی‌ها را کشف و هوشمندانه اصلاح می‌نماید.",
+          "work": "مدیریت هزینه‌های غیرضروری پایه‌های استقلال مالی شما را مستحکم‌تر از قبل می‌سازد.",
+          "emotion": "اشتراک‌گذاری رازهای دل با فردی مورد اعتماد، سبک‌بالی و آرامش فکری عمیقی می‌آورد.",
+          "lucky_num": 3,
+          "lucky_color": "بنفش تیره"
+        }
+      ],
+      "8": [
+        {
+          "general": "روحیه ماجراجو و خوش‌بینی ذاتی شما امروز انرژی‌بخش و امیدآفرین برای اطرافیان است.",
+          "work": "دیدگاه‌های کلان خود را به برنامه‌های عملیاتی و زمان‌بندی‌شده دقیق تبدیل کنید.",
+          "emotion": "صداقت پر از مهر شما، شوخ‌طبعی و شادی متقابل را به رابطه عاطفی‌تان هدیه می‌دهد.",
+          "lucky_num": 7,
+          "lucky_color": "آبی کاربنی"
+        },
+        {
+          "general": "افق‌های فکری تازه و فرصت‌های آموزشی نوینی امروز در مسیر شما قرار می‌گیرد.",
+          "work": "سرمایه‌گذاری روی یادگیری دانش‌های جدید، ارزشی پایدار برای آینده شغلی شما ایجاد می‌کند.",
+          "emotion": "برنامه‌ریزی برای یک سفر کوتاه یا گردش در طبیعت، روح تازه به روابطتان می‌بخشد.",
+          "lucky_num": 3,
+          "lucky_color": "ارغوانی"
+        },
+        {
+          "general": "با گام‌های استوار و امیدواری حرکت کنید؛ موفقیت بیش از هر زمان دیگری به شما نزدیک است.",
+          "work": "از شتاب‌زدگی و تصمیم‌گیری‌های شتاب‌زده هنگام امضای قراردادهای مالی بپرهیزید.",
+          "emotion": "احترام گذاشتن به حریم شخصی و آزادی فردی طرف مقابل، روابط شما را تحکیم می‌کند.",
+          "lucky_num": 5,
+          "lucky_color": "فیروزه‌ای"
+        }
+      ],
+      "9": [
+        {
+          "general": "پشتکار بی‌پایان و تعهد شما امروز با نتایجی درخشان و ارزشمند پاسخ داده می‌شود.",
+          "work": "گام‌های استوار و برنامه‌ریزی دقیق مالی شما را به اهداف تعیین‌شده نزدیک‌تر می‌کند.",
+          "emotion": "نشان دادن وفاداری و ثبات قدم، احساس امنیت خاطری عمیق به خانواده می‌بخشد.",
+          "lucky_num": 8,
+          "lucky_color": "خاکستری تیره"
+        },
+        {
+          "general": "به توانمندی‌های خود ایمان داشته باشید و صبورانه در مسیر اهداف واقعی‌تان تلاش کنید.",
+          "work": "پذیرش مسئولیت‌های جدید و کلیدی، موقعیت شغلی شما را ارتقا داده و تثبیت می‌کند.",
+          "emotion": "صمیمیت واقعی تنها در کلام نیست؛ با رفتارهای عملی حمایت همه‌جانبه خود را ثابت کنید.",
+          "lucky_num": 4,
+          "lucky_color": "قهوه‌ای سوخته"
+        },
+        {
+          "general": "امروز موفقیت‌های کوچک را جشن بگیرید و مسیر پیش رو را با اراده هموارتر سازید.",
+          "work": "مدیریت صحیح و حساب‌شده بودجه، دغدغه‌های اقتصادی آینده را به شدت کاهش می‌دهد.",
+          "emotion": "سپری کردن زمان با بزرگ‌ترهای خانواده، برکت و آرامش خاطری بی‌نظیر به همراه دارد.",
+          "lucky_num": 1,
+          "lucky_color": "سرمه‌ای"
+        }
+      ],
+      "10": [
+        {
+          "general": "نگاه نوآورانه و تفکر آزاد شما امروز راهکارهایی بی‌نظیر برای چالش‌های قدیمی می‌آفریند.",
+          "work": "از فناوری‌ها و ابزارهای به روز برای افزایش سرعت و کیفیت کارهای حرفه‌ای بهره ببرید.",
+          "emotion": "پذیرش بی‌قیدوشرط تفاوت‌های اطرافیان، فضایی صمیمی و پر از دوستی می‌سازد.",
+          "lucky_num": 4,
+          "lucky_color": "آبی فیروزه‌ای"
+        },
+        {
+          "general": "امروز ایده‌های پیشرو و ساختارشکن شما توجه و حمایت افراد تأثیرگذار را جلب می‌کند.",
+          "work": "در پروژه‌های گروهی نقش فعال داشته باشید و پیشنهادات سازنده خود را ارائه دهید.",
+          "emotion": "گفتگو درباره آرزوها و اهداف مشترک، شوق و شور رابطه را دوچندان می‌سازد.",
+          "lucky_num": 7,
+          "lucky_color": "نقره‌ای"
+        },
+        {
+          "general": "استقلال فکری خود را حفظ کنید و با شجاعت در مسیری که به آن باور دارید قدم بردارید.",
+          "work": "از هزینه‌کردن برای مخارج غیرضروری بپرهیزید تا تعادل مالی حسابتان حفظ شود.",
+          "emotion": "ابراز همدردی و همراهی با دوستان نزدیک، رفاقت شما را عمیق‌تر و پایدارتر خواهد کرد.",
+          "lucky_num": 9,
+          "lucky_color": "بنفش روشن"
+        }
+      ],
+      "11": [
+        {
+          "general": "روح شاعرانه و اندیشه خلاق شما امروز سرچشمه الهام برای کارهای بزرگ و هنرمندانه است.",
+          "work": "به حس درونی خود اعتماد کنید اما تصمیمات مالی را بر اساس محاسبات منطقی پیش ببرید.",
+          "emotion": "محبت خالصانه و بدون توقع شما، قلب شریک زندگی‌تان را لبریز از عشق می‌سازد.",
+          "lucky_num": 3,
+          "lucky_color": "سبز آبی"
+        },
+        {
+          "general": "مهربانی و بخشندگی در وجود شما جاری است؛ از آرامش درونی خود محافظت کنید.",
+          "work": "داشتن انضباط در کارهای روزمره، از آشفتگی و سردرگمی‌های کاری جلوگیری می‌کند.",
+          "emotion": "ایجاد فضایی آرام و عاشقانه در منزل، خستگی‌های روحی روزمره را کاملاً رفع می‌کند.",
+          "lucky_num": 6,
+          "lucky_color": "بنفش یاسی"
+        },
+        {
+          "general": "امروز زمان مناسبی برای استراحت ذهن، رهایی از استرس و تجدید انرژی معنوی است.",
+          "work": "پیشنهادهای کاری جدید را با دوراندیشی و بررسی همه‌جانبه ارزیابی کنید.",
+          "emotion": "یک گفتگوی دلی و صادقانه، تمام کدورت‌های کوچک گذشته را پاک و بی‌اثر می‌سازد.",
+          "lucky_num": 2,
+          "lucky_color": "یاقوتی ملایم"
+        }
+      ]
+    },
+    "ku": {
+      "0": [
+        {
+          "general": "ئەمڕۆ وزەیەکی بەهێز و ئەرێنی تێدایە. بیرۆکە نوێیەکانت بڕوایەکی گەورەت پێ دەبەخشن.",
+          "work": "پێشبینی سەرکەوتنێکی باش لە سۆنگەی بڕیارە ئازایانەکانتدا دەکرێت.",
+          "emotion": "میهرەبانی بەخشین بە هاوبەشی ژیانت، ئارامی دەهێنێتە نێوانتان.",
+          "lucky_num": 7,
+          "lucky_color": "سۆری ئاگرین"
+        },
+        {
+          "general": "ورەت بەرزە و کاتی ئەوەیە پڕۆژە دواخراوەکانت بەجۆشەوە دەست پێ بکەیتەوە.",
+          "work": "کۆششەکانت لەلایەن بەڕێوەبەرەکەتەوە بەرز دەنرخێنرێن.",
+          "emotion": "گفتوگۆیەکی کراوە بەشێکی زۆر لە تێنەگەیشتنەکانی ڕابردوو چارەسەر دەکات.",
+          "lucky_num": 3,
+          "lucky_color": "زەردی گەش"
+        },
+        {
+          "general": "ڕۆژێکی پڕ لە ئارامی ناخی دەبێت. بڕوا بە تواناکانی خۆت بکە.",
+          "work": "ئاگاداری خەرجییە زیادەکانت بە تا هاوسەنگی دارایی بپارێزیت.",
+          "emotion": "کاتی ئەوەیە بە هەستێکی گەرمەوە پشتگیری خۆشەویستەکەت بکەیت.",
+          "lucky_num": 9,
+          "lucky_color": "پرتەقاڵی"
+        }
+      ],
+      "1": [
+        {
+          "general": "سەقامگیری و ئارامی ڕۆحی ئەمڕۆ دەبنە بەشێک لە ژیانت. هەنگاوی هێمن بنێ.",
+          "work": "مامەڵەیەکی دارایی سەرکەوتووانە ئەنجام دەدەیت کە قازانجی باشی دەبێت.",
+          "emotion": "سۆز و خۆشەویستی نێوانتان قووڵتر دەبێتەوە.",
+          "lucky_num": 6,
+          "lucky_color": "سەوزی زمردی"
+        },
+        {
+          "general": "تەرکیزت لەسەر ئامانجە داهاتووەکانتە. ئەمڕۆ گونجاوە بۆ دارشتنی پلانی نوێ.",
+          "work": "پێویستە کارەکانت بە وردی ڕێک بخەیت تا تووشی گوشار نەبیت.",
+          "emotion": "سەردانێکی نائومێدکەر دەبێتە هۆی دڵخۆشییەکی گەورە لە خێزانەکەتدا.",
+          "lucky_num": 2,
+          "lucky_color": "پەمەیی کاڵ"
+        },
+        {
+          "general": "ئەمڕۆ توانای ئارامگریت بەرزە و ڕووداوەکان بە ئاسانی کۆنترۆڵ دەکەیت.",
+          "work": "هەلێکی باشی وەبەرهێنان یان گەشەکردنی پیشەیی پێشکەشت دەکرێت.",
+          "emotion": "کاتێکی خۆش لەگەڵ هاوبەشەکەتدا بەسەر دەبەیت و یادگاری جوان دروست دەکەن.",
+          "lucky_num": 5,
+          "lucky_color": "قاوەیی"
+        }
+      ],
+      "2": [
+        {
+          "general": "توندوتیژی دەروونیت کەم دەبێتەوە و بیرکردنەوەت ڕوونتر دەبێت. پەیوەندییەکانت گەشە دەکەن.",
+          "work": "بیرۆکە داهێنەرەکانت سەرسامیی هاوکارانت بەدەست دەهێنن.",
+          "emotion": "ئەو دەربڕینە سۆزدارییانەی دەیاکەیت، کەمێک لە دوودڵی یەکتری کەم دەکاتەوە.",
+          "lucky_num": 5,
+          "lucky_color": "زەردی کەرمیی"
+        },
+        {
+          "general": "کاتی ئەوەیە دەست بکەیت بە فێربوونی شتی نوێ. مێشکت کراوەیە بۆ زانیاری.",
+          "work": "ئاگاداری تەرکیزت بە لە کاتی ئیمزا کردنی بەڵگەنامە گنگەکاندا.",
+          "emotion": "پەیوەندییەکی تەلەفۆنی ناوازە خەندە دەخاتە سەر لێوەکانت.",
+          "lucky_num": 1,
+          "lucky_color": "شینی ئاسمانی"
+        },
+        {
+          "general": "ئەمڕۆ پڕ لە گەشە و جووڵەی کۆمەڵایەتی دەبێت. ئاسۆی نوێ بۆت دەکەرێتەوە.",
+          "work": "پڕۆژەیەکی بەکۆمەڵ سەرکەوتنی باش بەدەست دەهێنێت.",
+          "emotion": "ڕاشکاوی لە دەربڕینی هەستەکانت زەمینەی متمانە بەهێزتر دەکات.",
+          "lucky_num": 8,
+          "lucky_color": "سپی"
+        }
+      ],
+      "3": [
+        {
+          "general": "هەستەکانت قووڵن و ئیلهامێکی باش وەردەگریت. زیاتر گوێ لە دەنگی ناخت بگرە.",
+          "work": "بە ئارامی و هێمنییەوە کارە گرانەکانت ڕاپەڕێنە.",
+          "emotion": "میهرەبانی ناخ بێوێنەیە، ئەمڕۆ بەهای ئەو سۆزە لای هاوبەشەکەت دەردەکەوێت.",
+          "lucky_num": 2,
+          "lucky_color": "زیوی"
+        },
+        {
+          "general": "دڵخۆشییەکی گەورە لە ناو کەشوهەوای خێزانەکەتدا دروست دەبێت.",
+          "work": "لە ڕووی داراییەوە بەرەوپێشچوونێکی بەرچاو دەبینیت.",
+          "emotion": "دانیشتنێکی ڕۆمانسی هاوسەنگی سۆزداریت بۆ دەگەڕێنێتەوە.",
+          "lucky_num": 4,
+          "lucky_color": "سپی مرواری"
+        },
+        {
+          "general": "ئەمڕۆ کاتێکی گونجاوە بۆ خزمەتکردنی تەندروستی ناخ و جەستەت.",
+          "work": "دووربکەوەرەوە لە کێشمەکێشی ناپێویست لە ژینگەی کاردا.",
+          "emotion": "پشتگیری کەسێک کە خۆشت دەوێت ورەی زیاترت پێ دەبەخشێت.",
+          "lucky_num": 9,
+          "lucky_color": "شینی تۆخ"
+        }
+      ],
+      "4": [
+        {
+          "general": "تیشک دانەوەی بەهێزت لە هەر شوێنێک بیت دەردەکەوێت. متمانەت بە خۆت بەرزە.",
+          "work": "پێگەی سەرکردایەتیت بەهێز دەبێت و بڕیارەکانت ڕێزگرتوو دەبن.",
+          "emotion": "بەخشندەیی لە پەیوەندیدا خۆشەویستەکەت زیاتر سەرسام دەکات.",
+          "lucky_num": 1,
+          "lucky_color": "زێڕینی"
+        },
+        {
+          "general": "کاتێکی باشە بۆ خستنەڕووی بەهرەکانی خۆت و بەدەستهێنانی پشتیوانی.",
+          "work": "هەلێکی نوێی دارایی یان بەرزبوونەوەی پلەت بۆ دێتە ئاراوه.",
+          "emotion": "دیمەنێکی ڕۆمانسی سەرنجڕاکێش بەشێک لە هیواکانت دێنێتە دی.",
+          "lucky_num": 8,
+          "lucky_color": "پرتەقاڵی درەوشاوە"
+        },
+        {
+          "general": "ڕۆژێکی پڕ لە چالاکی و وزەی ئەرێنی بەڕێ دەکەیت.",
+          "work": "پەلە مەکە لە بڕیارەکانی پەیوەست بە وەبەرهێنانی گەورە.",
+          "emotion": "کاتی زیاتر تەرخان بکە بۆ ئاخاوتن لەگەڵ خۆشەویستەکەتدا.",
+          "lucky_num": 5,
+          "lucky_color": "سووری شاهانە"
+        }
+      ],
+      "5": [
+        {
+          "general": "ڕێکخستن و وردبینی سەرەکیترین توانای ئەمڕۆتن. هەموو شتێک دەکەوێتە شوێنی خۆی.",
+          "work": "سەرکەوتووانە کۆتایی بە ئەرکێکی قورس بە دەستەکانی خۆت دەهێنیت.",
+          "emotion": "خۆشەویستەکەت ڕێز لە خەمخۆری و پشتیوانییەکانت دەنێت.",
+          "lucky_num": 5,
+          "lucky_color": "سەوزی بیانی"
+        },
+        {
+          "general": "ڕۆژێکی گونجاوە بۆ پاککردنەوەی ژیانت لە هەموو ئەو شتانەی سوودیان نییە.",
+          "work": "پلاندانانی وردی دارایی یارمەتیت دەدات خەرجییەکانت کۆنترۆڵ بکەیت.",
+          "emotion": "تێگەیشتنی یەکتری وا دەکات کێشە بچووکەکان نامێنن.",
+          "lucky_num": 3,
+          "lucky_color": "کرمیی"
+        },
+        {
+          "general": "مێشکت ڕوونە و توانای ئامۆژگاری کردنی کەسانی ترت هەیە.",
+          "work": "هاوکارەکانت بۆ چارەسەرکردنی کێشەکان پەنا بۆ تۆ دەهێنن.",
+          "emotion": "هەستێکی ئارام لە نێوانتدا دروست دەبێت کە متمانە بەهێز دەکات.",
+          "lucky_num": 4,
+          "lucky_color": "خۆڵەمێشی کاڵ"
+        }
+      ],
+      "6": [
+        {
+          "general": "هاوسەنگی و جوانی دەبنە خاڵی سەرەکی ڕۆژت. پەیوەندییە کۆمەڵایەتییەکانت باشتر دەبن.",
+          "work": "دیدار یان گفتوگۆیەکی بازرگانی بە سەرکەوتوویی کۆتایی دێت.",
+          "emotion": "کەشێکی ئاشتییانە و پڕ لە ڕێز پەیوەندییەکەت گەشە پێ دەدات.",
+          "lucky_num": 6,
+          "lucky_color": "پەمەیی"
+        },
+        {
+          "general": "خۆشییەکی تایبەت دەچێتە ناختەوە کە وات لێدەکات گەشبین بیت بە داهاتوو.",
+          "work": "کارێکی بەکۆمەڵ پێویستی بە دیپلۆماسییەتی تۆ دەبێت.",
+          "emotion": "دیارییەک یان ئاماژەیەکی بچووک خۆشەویستەکەت دڵخۆش دەکات.",
+          "lucky_num": 2,
+          "lucky_color": "شینی کاڵ"
+        },
+        {
+          "general": "کاتی ئەوەیە زیاتر گرنگی بە دەرکەوتەی دەرەکی و ئارامی ناخ بدەیت.",
+          "work": "هاوسەنگی بپارێزە لە نێوان کاتی کارکردن و پشوو وەرگرتندا.",
+          "emotion": "بەخشینی ئازادی زیاتر بە هاوبەشەکەت متمانە بەهێز دەکات.",
+          "lucky_num": 7,
+          "lucky_color": "بیج"
+        }
+      ],
+      "7": [
+        {
+          "general": "هێزی ناخ و خۆڕاگریت بەرزە. توانای درکپێکردنی ڕاستییەکانت بەهێز دەبێت.",
+          "work": "تەرکیزت لەسەر ئامانجە گرنگەکان وا دەکات ئەنجامی باش دەستبکەوێت.",
+          "emotion": "پەیوەندی سۆزداریت دەچێتە قۆناغێکی قووڵتر و ڕاستگۆیانەتر.",
+          "lucky_num": 8,
+          "lucky_color": "مۆری تۆخ"
+        },
+        {
+          "general": "ئەمڕۆ هەست بە سەربەخۆیی و توانای گۆڕانکاری گەورە دەکەیت.",
+          "work": "مامەڵەیەکی دارایی زۆر نهێنی سەرکەوتووانە ئەنجام دەدەیت.",
+          "emotion": "دەربڕینی سۆزی بەهێزت لایەنەکەی تر سەرسام دەکات.",
+          "lucky_num": 9,
+          "lucky_color": "ڕەش"
+        },
+        {
+          "general": "کاتی ئەوەیە ڕابردوو بەجێبهێڵیت و بە هیواوە بەرەو پێشەوە بڕۆیت.",
+          "work": "ئاگاداری هاوبەشیکردنی زانیاری گرنگ بە لە ژینگەی کاردا.",
+          "emotion": "ئارامگرتن یارمەتیت دەدات سوود لە دانیشتنێکی سۆزداری وەرگریت.",
+          "lucky_num": 4,
+          "lucky_color": "بورگوندی"
+        }
+      ],
+      "8": [
+        {
+          "general": "ڕۆژێکی پڕ لە گەشبینی و ئارهەزووی ئەزموونی نوێیە. ورەت بەرز بپارێزە.",
+          "work": "هەلێکی باش بۆ گەشتکردن یان بەرفراوانکردنی کارەکانت دێتە ئاراوە.",
+          "emotion": "کاتی ڕابوردنی خۆش لەگەڵ هاوبەشەکەت ورەتان بەرز دەکاتەوە.",
+          "lucky_num": 3,
+          "lucky_color": "نیلی"
+        },
+        {
+          "general": "بیرکردنەوەی ئەرێنیت هاوڕێیەکی باش دەبێت بۆ زاڵبوون بەسەر کۆسپەکاندا.",
+          "work": "وەبەرهێنان لە زانیاری یان فێربوونی نوێدا قازانجی دەبێت.",
+          "emotion": "ڕاستگۆیی و ڕاشکاوی لە دەربڕیندا، گومانەکان ناهێڵێت.",
+          "lucky_num": 5,
+          "lucky_color": "پرتەقاڵی مایل بە سوور"
+        },
+        {
+          "general": "تەواوی ڕۆژەکە وزەی ئەرێنی پڕدەکاتەوە و ئاهەنگگێڕان نزیک دەبێتەوە.",
+          "work": "سەرکەوتنێک کە بەهۆی ماندووبوونی ڕابردووتەوە بووە، بەدەست دێت.",
+          "emotion": "سوپڕایزێکی بچووک پەیوەندییەکەتان بەهێزتر دەکات.",
+          "lucky_num": 9,
+          "lucky_color": "زەردی زێڕین"
+        }
+      ],
+      "9": [
+        {
+          "general": "پشوودانی مێشک و پلاندانی ورد کلیلی سەرکەوتنی ئەمڕۆتن. هێمن بە.",
+          "work": "سەرکەوتنی پیشەیی گرنگ لە سۆنگەی کارامەیییەکانتەوە نزیک دەبێتەوە.",
+          "emotion": "دەربڕینی وەفاداریت پێگەت لای هاوبەشی ژیانت بەهێزتر دەکات.",
+          "lucky_num": 4,
+          "lucky_color": "قاوەیی تۆخ"
+        },
+        {
+          "general": "ورە و خۆڕاگریت یارمەتیت دەدات لە ئەرکە قورسەکاندا سەرکەویت.",
+          "work": "بڕیارە داراییەکانت بە عەقڵانی دەدەیت و قازانجی داهاتوو مسۆگەر دەکەیت.",
+          "emotion": "دانیشتنێکی کورت و پر لە تێگەیشتن نێوانتان ئارام دەکاتەوە.",
+          "lucky_num": 8,
+          "lucky_color": "خۆڵەمێشی"
+        },
+        {
+          "general": "ئەمڕۆ هەست بە بەهێزی ڕێکخستنی کارەکانت دەکەیت و ئامانجەکانت نزیکن.",
+          "work": "پێگەی بەڕێوەبردنت باشتری تێدا بەدی دەکرێت.",
+          "emotion": "پیشاندانی گرنگیپێدان ئارامیی زیاتر دەهێنێتە ناو پەیوەندییەکەت.",
+          "lucky_num": 1,
+          "lucky_color": "سەوزی تۆخ"
+        }
+      ],
+      "10": [
+        {
+          "general": "بیرکردنەوەی سەربەخۆ و داهێنەرانەت ڕێگەی نوێت بۆ دەکاتەوە. کراوە بە.",
+          "work": "پێشنیارێکی نوێ لە کاردا جێگەی سەرنجی دەبێت و پێشوازی لێ دەکرێت.",
+          "emotion": "هاوڕێیەتی لەگەڵ هاوبەشەکەتدا بنەمای بەهێزی سۆزتانی دروست کردووە.",
+          "lucky_num": 7,
+          "lucky_color": "فیرۆزەیی"
+        },
+        {
+          "general": "ئەمڕۆ حەز بە بەشداریکردن لە کارە کۆمەڵایەتییەکان و هاوکاریکردن دەکەیت.",
+          "work": "سوود وەرگرتن لە تەکنەلۆژیا کارەکانت خێراتر و ئاسانتر دەکات.",
+          "emotion": "دیالۆگێکی کراوە بەهای پەیوەندییەکەتان بەرزتر دەکاتەوە.",
+          "lucky_num": 9,
+          "lucky_color": "شینی درەوشاوە"
+        },
+        {
+          "general": "وزەی ئەمڕۆ وات لێدەکات دوور لە چوارچێوە باوەکان بیر بکەیتەوە.",
+          "work": "ڕێککەوتنێکی نوێ هەلی باش بۆ پەرەپێدانی کارەکانت دروست دەکات.",
+          "emotion": "دیاری کردنی سنووری ئەرێنی هەست بە ئارامی زیاتر دەکات لە پەیوەندیدا.",
+          "lucky_num": 3,
+          "lucky_color": "مۆری کاڵ"
+        }
+      ],
+      "11": [
+        {
+          "general": "ئیلهامی هونەری و هەستیاری ناخت لە بەرزترین ئاستیدایە. گوێ بە ناخت بگرە.",
+          "work": "بە بەکارهێنانی زیرەکیی سۆزداری کێشەیەکی ئاڵۆزی کار چارەسەر دەکەیت.",
+          "emotion": "کەشوهەوایەکی ڕۆمانسی و ئارام نێوانتان پڕ لێ سۆز دەکات.",
+          "lucky_num": 6,
+          "lucky_color": "سەوزی دەریایی"
+        },
+        {
+          "general": "ڕۆژێکی پڕ لە ئارامی دەروونی و توانای لێبوردەییە. ئاسوودە بژی.",
+          "work": "ئاگاداری خەرجییە ناپێویستەکان بە تا پارەکانت پارێزراو بن.",
+          "emotion": "گوێگرتن لە هاوبەشەکەت بە هەستەوە پەیوەندییەکە قووڵتر دەکات.",
+          "lucky_num": 2,
+          "lucky_color": "مۆری ئاسمانی"
+        },
+        {
+          "general": "ئەمڕۆ هەست بە نزیکی لە سروشت و ئارامی ناخ دەکەیت.",
+          "work": "پڕۆژەیەکی داهێنەرانە کە پێشتر دەستت پێکردبوو ئەنجامی باش دەدات.",
+          "emotion": "ڕاستگۆیی هەستەکانت دەبێتە هۆی زیاتربوونی خۆشەویستی نێوانتان.",
+          "lucky_num": 5,
+          "lucky_color": "سپی درەوشاوە"
+        }
+      ]
+    },
+    "en": {
+      "0": [
+        {
+          "general": "Dynamic energy propels you forward today. Trust your instincts as fresh opportunities unfold smoothly around you.",
+          "work": "Focus on finalizing pending tasks today, as your sharp attention to detail prevents future miscommunications.",
+          "emotion": "Honest communication with someone special helps bridge recent distance and restores your shared warmth.",
+          "lucky_num": 3,
+          "lucky_color": "Crimson Red"
+        },
+        {
+          "general": "Bold ideas take center stage today. Embrace unexpected changes with confidence and a spark of enthusiasm.",
+          "work": "Take the lead on an ambitious project, as colleagues will readily support your vision and drive.",
+          "emotion": "Expressing your passionate side brings a delightful spark back into your closest personal connections today.",
+          "lucky_num": 8,
+          "lucky_color": "Vibrant Orange"
+        },
+        {
+          "general": "A calm sense of purpose empowers your actions today. Steady effort brings surprisingly swift rewards.",
+          "work": "Reorganize your workspace or budget to set a strong foundation for your upcoming financial goals.",
+          "emotion": "Shared laughter with a friend offers a refreshing reminder of the strong support network surrounding you.",
+          "lucky_num": 1,
+          "lucky_color": "Gold"
+        }
+      ],
+      "1": [
+        {
+          "general": "Grounded optimism helps you stay centered today. Take time to appreciate life's simple pleasures around you.",
+          "work": "Stick to proven routines at work to maintain high efficiency and protect your valuable energy.",
+          "emotion": "Quiet moments spent together strengthen your emotional bond with a partner or cherished family member.",
+          "lucky_num": 6,
+          "lucky_color": "Forest Green"
+        },
+        {
+          "general": "Patience opens new doors today as subtle opportunities reveal themselves in steady, reassuring ways.",
+          "work": "Reviewing your long-term savings plan today will yield excellent ideas for steady financial growth.",
+          "emotion": "Be gentle with your heart and offer quiet support to a loved one needing reassurance.",
+          "lucky_num": 4,
+          "lucky_color": "Terracotta"
+        },
+        {
+          "general": "Today brings a lovely balance of practical focus and quiet creative inspiration for your projects.",
+          "work": "Collaborative efforts go smoothly, making it an ideal day for team discussions and planning.",
+          "emotion": "Surprising a dear friend with a kind gesture creates a wave of warm connection.",
+          "lucky_num": 2,
+          "lucky_color": "Soft Cream"
+        }
+      ],
+      "2": [
+        {
+          "general": "Your natural curiosity opens exciting paths today. Social connections bring uplifting ideas and fresh perspectives.",
+          "work": "Tackle complex emails and proposals early while your mental focus and clarity are at peak levels.",
+          "emotion": "Flirtatious banter or playful conversations brighten your mood and draw intriguing people closer to you.",
+          "lucky_num": 5,
+          "lucky_color": "Bright Yellow"
+        },
+        {
+          "general": "Flexibility is your greatest strength today. Adapt easily to shifting schedules and enjoy the spontaneous ride.",
+          "work": "Pitching innovative ideas during meetings yields positive feedback from key decision-makers in your workplace.",
+          "emotion": "Listening actively to a loved one's story brings a deeply satisfying feeling of closeness today.",
+          "lucky_num": 9,
+          "lucky_color": "Lavender"
+        },
+        {
+          "general": "Fresh insights illuminate a path forward. Embrace new learning experiences with an open, enthusiastic mind.",
+          "work": "A brief networking chat could unlock an unexpectedly useful professional contact or valuable project lead.",
+          "emotion": "Share your thoughts candidly to build a foundation of mutual understanding in your primary relationship.",
+          "lucky_num": 7,
+          "lucky_color": "Sky Blue"
+        }
+      ],
+      "3": [
+        {
+          "general": "Intuitive clarity guides your choices today. Take gentle care of your needs while supporting others thoughtfully.",
+          "work": "Trust your gut instincts when navigating delicate negotiations or reviewing shared financial commitments today.",
+          "emotion": "Creating a comforting environment at home fosters memorable, heartwarming moments with those you love.",
+          "lucky_num": 2,
+          "lucky_color": "Pearl White"
+        },
+        {
+          "general": "Inner peace flows naturally today as you release old worries and embrace peaceful daily rhythms.",
+          "work": "Focus on completing solo assignments today where your dedication can shine without external distractions.",
+          "emotion": "Expressing vulnerable feelings helps clear past misunderstandings and strengthens your current intimacy.",
+          "lucky_num": 7,
+          "lucky_color": "Silver"
+        },
+        {
+          "general": "Emotional warmth surrounds you, allowing you to connect deeply with your personal aspirations and goals.",
+          "work": "Budgeting for home improvements or personal care brings a satisfying sense of security and control.",
+          "emotion": "A heartfelt note or message from a dear relative will brighten your whole evening up.",
+          "lucky_num": 4,
+          "lucky_color": "Seafoam Green"
+        }
+      ],
+      "4": [
+        {
+          "general": "Radiant optimism lights up your day. Your warm presence inspires enthusiasm in everyone around you.",
+          "work": "Step up to present your work with confidence, as your creative flair commands attention.",
+          "emotion": "Generous compliments and shared enthusiasm create an unforgettable connection with someone special today.",
+          "lucky_num": 1,
+          "lucky_color": "Royal Gold"
+        },
+        {
+          "general": "Creative vitality surges today, encouraging you to pursue projects that bring genuine joy to life.",
+          "work": "Prioritize high-impact assignments today to maximize your efficiency and gain valuable recognition from leadership.",
+          "emotion": "Plan a fun outing or romantic date to reignite excitement and passion in your life.",
+          "lucky_num": 5,
+          "lucky_color": "Amber"
+        },
+        {
+          "general": "Your leadership skills shine brightly as you easily guide daily activities toward shared success today.",
+          "work": "Wise financial choices today will protect your long-term prosperity and give you peace of mind.",
+          "emotion": "Warm laughter and affectionate gestures heal past tensions and draw friends closer than before.",
+          "lucky_num": 8,
+          "lucky_color": "Warm Crimson"
+        }
+      ],
+      "5": [
+        {
+          "general": "Precise thinking and calm focus help you accomplish your daily goals with effortless harmony today.",
+          "work": "Organize your workflow meticulously to streamline daily operations and impress your team members today.",
+          "emotion": "Showing practical support to someone close demonstrates your deep care far better than words.",
+          "lucky_num": 5,
+          "lucky_color": "Olive Green"
+        },
+        {
+          "general": "A sense of satisfaction follows your steady progress today. Small achievements yield lasting daily joy.",
+          "work": "Double-checking financial details reveals an easy way to trim unnecessary expenses from your budget.",
+          "emotion": "Gentle, honest dialogue resolves a lingering uncertainty and brings comforting clarity to your relationship.",
+          "lucky_num": 3,
+          "lucky_color": "Taupe"
+        },
+        {
+          "general": "Today brings clarity and mental order, allowing you to solve problems that previously seemed difficult.",
+          "work": "Focus on refining existing projects rather than starting new ones to produce exceptional final results.",
+          "emotion": "Spending quiet quality time together restores a sense of shared balance and loving contentment.",
+          "lucky_num": 9,
+          "lucky_color": "Pale Blue"
+        }
+      ],
+      "6": [
+        {
+          "general": "Harmony and social grace mark your day. You bring balance and peaceful perspective to every interaction.",
+          "work": "Mediating a workplace discussion successfully positions you as a tactful and indispensable team leader.",
+          "emotion": "Romance flourishes when you express your feelings through thoughtful artistic or elegant romantic gestures.",
+          "lucky_num": 6,
+          "lucky_color": "Rose Pink"
+        },
+        {
+          "general": "Pleasant synchronicities brighten your path today. Trust in the smooth flow of your personal journey.",
+          "work": "Reviewing shared investments or partnership deals today brings clarity and favorable long-term terms.",
+          "emotion": "Mutual respect and open ears bring deep harmony to your closest partnership or friendship.",
+          "lucky_num": 2,
+          "lucky_color": "Pastel Blue"
+        },
+        {
+          "general": "Inspiring interactions encourage you to embrace beauty and creativity in all your daily activities.",
+          "work": "Collaborating on creative projects today produces innovative solutions that please clients and managers alike.",
+          "emotion": "An unexpected compliment from a loved one elevates your spirits and warms your heart.",
+          "lucky_num": 7,
+          "lucky_color": "Peach"
+        }
+      ],
+      "7": [
+        {
+          "general": "Deep focus and quiet determination empower your actions today. You perceive hidden truths with total clarity.",
+          "work": "Strategic planning today lays a solid groundwork for significant career advancement in coming months.",
+          "emotion": "Vulnerability unlocks profound emotional intimacy, forging a resilient bond with your trusted partner today.",
+          "lucky_num": 9,
+          "lucky_color": "Burgundy"
+        },
+        {
+          "general": "Inner transformation allows you to release old burdens and welcome refreshing new vitality today.",
+          "work": "Researching investment opportunities yields promising results that align perfectly with your financial values.",
+          "emotion": "Passionate and truthful conversations deepen mutual trust and ignite sparks of renewed romance today.",
+          "lucky_num": 4,
+          "lucky_color": "Obsidian Black"
+        },
+        {
+          "general": "Intuitive wisdom guides your steps today, helping you make steady progress toward meaningful personal goals.",
+          "work": "Keep your ambitious projects confidential until every detail is completely polished and ready to launch.",
+          "emotion": "A meaningful conversation helps resolve unspoken feelings, bringing long-awaited peace to your relationship.",
+          "lucky_num": 8,
+          "lucky_color": "Plum"
+        }
+      ],
+      "8": [
+        {
+          "general": "An adventurous spirit uplifts your day. Exploring new perspectives brings joy and invigorating mental energy.",
+          "work": "Expanding your professional skills through online training today improves your long-term career prospects significantly.",
+          "emotion": "Playful optimism attracts delightful social connections and revitalizes current romantic bonds effortlessly today.",
+          "lucky_num": 3,
+          "lucky_color": "Royal Blue"
+        },
+        {
+          "general": "Optimism opens unexpected horizons today. Trust that your vision is leading you toward personal growth.",
+          "work": "Pitching bold strategies to your team earns enthusiastic support and opens up exciting possibilities.",
+          "emotion": "Sharing your dreams candidly inspires your partner to support your future plans with enthusiasm.",
+          "lucky_num": 7,
+          "lucky_color": "Turquoise"
+        },
+        {
+          "general": "Today brings a sense of freedom and enthusiasm, perfect for starting new learning ventures.",
+          "work": "Reviewing international opportunities or distant markets can unlock unexpected avenues for business growth.",
+          "emotion": "A spontaneous trip or surprise activity with a loved one creates joyful, lasting memories.",
+          "lucky_num": 5,
+          "lucky_color": "Violet"
+        }
+      ],
+      "9": [
+        {
+          "general": "Disciplined effort yields impressive results today. Your steady perseverance builds a reliable foundation for success.",
+          "work": "Focus on high-priority tasks to demonstrate reliability and strengthen your standing with senior executives.",
+          "emotion": "Showing consistent devotion builds deep security and lasting affection within your relationship today.",
+          "lucky_num": 8,
+          "lucky_color": "Slate Gray"
+        },
+        {
+          "general": "Practical wisdom guides your choices today, allowing you to master challenges with calm confidence.",
+          "work": "Long-term financial planning today helps secure your assets and ensures steady future growth potential.",
+          "emotion": "A quiet evening spent with family provides grounding comfort and strengthens your emotional roots.",
+          "lucky_num": 4,
+          "lucky_color": "Dark Brown"
+        },
+        {
+          "general": "Clear boundaries and structured habits keep your daily energy focused, efficient, and thoroughly productive today.",
+          "work": "Delegating minor tasks allows you to focus fully on strategic career moves that matter.",
+          "emotion": "Expressing appreciation for a loved one's steady presence deepens the emotional trust between you.",
+          "lucky_num": 1,
+          "lucky_color": "Charcoal"
+        }
+      ],
+      "10": [
+        {
+          "general": "Innovative ideas flow freely today. Your unique vision brings fresh energy to collaborative group projects.",
+          "work": "Proposing creative technological solutions sets you apart as a forward-thinking professional at work today.",
+          "emotion": "Unconventional social outings spark lively conversations and help you connect with like-minded souls.",
+          "lucky_num": 7,
+          "lucky_color": "Electric Blue"
+        },
+        {
+          "general": "Intellectual clarity inspires progress today. Embrace your individuality while building strong community connections around you.",
+          "work": "Group brainstorms yield breakthrough ideas that solve a persistent operational challenge efficiently today.",
+          "emotion": "Open-minded acceptance of a partner's quirks deepens your bond and creates refreshing mutual freedom.",
+          "lucky_num": 9,
+          "lucky_color": "Silver Cyan"
+        },
+        {
+          "general": "Your humanitarian instincts shine today as you offer valuable support to meaningful community initiatives.",
+          "work": "Reorganizing your financial strategies with digital tools increases your efficiency and long-term security.",
+          "emotion": "Deep intellectual discussions with someone close bring an inspiring sense of emotional alignment today.",
+          "lucky_num": 2,
+          "lucky_color": "Aquamarine"
+        }
+      ],
+      "11": [
+        {
+          "general": "Creative inspiration and gentle compassion guide your day. Trust your rich inner wisdom to lead.",
+          "work": "Applying intuitive creativity to your tasks yields remarkable solutions that impress colleagues and managers.",
+          "emotion": "Expressing empathy openly comforts a friend and creates a powerful, lasting soul connection today.",
+          "lucky_num": 6,
+          "lucky_color": "Sea Green"
+        },
+        {
+          "general": "Dreamy artistic energy surrounds you today. Allow your imagination to flourish while staying softly grounded.",
+          "work": "Trusting your subtle instincts during client interactions prevents costly misunderstandings and builds rapport easily.",
+          "emotion": "Romantic gestures and quiet togetherness bring pure joy to your heart and restore peace.",
+          "lucky_num": 3,
+          "lucky_color": "Lavender Blue"
+        },
+        {
+          "general": "Gentle synchronicities bring peace to your spirit today. Embrace quiet reflection to nourish your soul.",
+          "work": "Setting realistic financial boundaries today ensures your generosity does not compromise your personal security.",
+          "emotion": "Sharing your artistic passions with someone special creates a memorable and heart-opening bond today.",
+          "lucky_num": 9,
+          "lucky_color": "Soft Indigo"
+        }
+      ]
+    }
+  }
 }
