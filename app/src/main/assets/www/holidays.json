@@ -791,7 +791,20 @@
       ]
     ]
   },
-  "emergency": {},
+  "emergency": {
+    "1405-9-7": [
+      {
+        "title": "غیرحضوری شدن مدارس سیرجان در ۷ آذرماه به دلیل شیوع آنفلوآنزا",
+        "reason": "شیوع آنفولانزا و بیماری‌های تنفسی فصلی",
+        "scope": "schools",
+        "cities": [
+          "س سیرجان"
+        ],
+        "isHoliday": false,
+        "source": "ایسنا, خبرگزاری مهر, خبرآنلاین"
+      }
+    ]
+  },
   "_meta": {
     "source": "time.ir + SmartCal AI",
     "checked_years": [
